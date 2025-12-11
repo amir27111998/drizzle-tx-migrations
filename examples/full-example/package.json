@@ -1,0 +1,25 @@
+{
+  "name": "drizzle-tx-migrations-example",
+  "version": "1.0.0",
+  "description": "Full example of drizzle-tx-migrations",
+  "scripts": {
+    "migration:generate": "drizzle-tx-migrations generate",
+    "migration:run": "drizzle-tx-migrations up",
+    "migration:revert": "drizzle-tx-migrations down",
+    "migration:status": "drizzle-tx-migrations status",
+    "migration:list": "drizzle-tx-migrations list",
+    "dev": "tsx src/index.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.29.0",
+    "drizzle-tx-migrations": "^1.0.0",
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/pg": "^8.10.9",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}

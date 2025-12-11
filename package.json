@@ -1,0 +1,71 @@
+{
+  "name": "drizzle-tx-migrations",
+  "version": "1.0.0",
+  "description": "TypeORM-like migrations for Drizzle ORM with transaction support",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "drizzle-tx-migrations": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.js\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.js\"",
+    "migration:generate": "node dist/cli.js generate",
+    "migration:run": "node dist/cli.js up",
+    "migration:revert": "node dist/cli.js down",
+    "migration:status": "node dist/cli.js status",
+    "migration:check": "node dist/cli.js check",
+    "migration:validate": "node dist/cli.js validate",
+    "test": "node --test tests/**/*.test.js",
+    "test:watch": "node --test --watch tests/**/*.test.js",
+    "prepublishOnly": "npm run lint && npm run format:check && npm run build && npm test"
+  },
+  "keywords": [
+    "drizzle",
+    "drizzle-orm",
+    "migrations",
+    "database",
+    "typeorm",
+    "transaction",
+    "postgresql",
+    "mysql",
+    "sqlite"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.0.1",
+    "prettier": "^3.1.1",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.29.0",
+    "drizzle-kit": "^0.20.0"
+  },
+  "peerDependencies": {
+    "drizzle-orm": ">=0.29.0",
+    "pg": ">=8.0.0 || *",
+    "mysql2": ">=2.0.0 || *",
+    "better-sqlite3": ">=8.0.0 || *"
+  },
+  "peerDependenciesMeta": {
+    "pg": {
+      "optional": true
+    },
+    "mysql2": {
+      "optional": true
+    },
+    "better-sqlite3": {
+      "optional": true
+    }
+  }
+}
