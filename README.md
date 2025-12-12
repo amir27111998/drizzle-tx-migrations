@@ -296,11 +296,22 @@ class MigrationGenerator {
 
 ## Publishing & Releases
 
-This package uses automated publishing. To release a new version:
+This package uses **fully automated** publishing. When you push to `main`:
 
-1. Update version: `npm version patch|minor|major`
-2. Commit and push to `main` branch
-3. GitHub Actions automatically publishes to npm
+**Option 1: Auto-increment (easiest)**
+- Just push to `main` without changing version
+- GitHub Actions auto-increments patch version and publishes
+
+**Option 2: Manual version bump**
+```bash
+npm version minor  # or major/patch
+git push origin main
+```
+
+**How It Works:**
+- `package.json version = latest tag` → Auto-increments patch
+- `package.json version > latest tag` → Uses your version
+- `package.json version < latest tag` → Fails with error
 
 ## Contributing
 
