@@ -5,14 +5,16 @@ import { setupTestEnvironment, cleanupTestEnvironment } from './setup';
 
 describe('MigrationValidator', () => {
   let testDir: string;
+  let testDb: string;
 
   beforeEach(() => {
     const setup = setupTestEnvironment();
     testDir = setup.testDir;
+    testDb = setup.testDb;
   });
 
   afterEach(() => {
-    cleanupTestEnvironment();
+    cleanupTestEnvironment(testDir, testDb);
   });
 
   test('should validate correct migration files', async () => {

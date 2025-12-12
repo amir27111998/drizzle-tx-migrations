@@ -97,9 +97,7 @@ export default { migrator, generator };
   });
 
   test('should generate migration via CLI', async () => {
-    const { stdout } = await execAsync(
-      `cd ${testDir} && node ${cliPath} generate test_migration`
-    );
+    const { stdout } = await execAsync(`cd ${testDir} && node ${cliPath} generate test_migration`);
 
     expect(stdout).toContain('Migration created');
 
@@ -184,9 +182,7 @@ export default { up, down };
 
   test('check command should exit with code 0 when no pending migrations', async () => {
     // Don't create any migrations or run them all first
-    const { stdout, stderr } = await execAsync(
-      `cd ${testDir} && node ${cliPath} check`
-    );
+    const { stdout, stderr } = await execAsync(`cd ${testDir} && node ${cliPath} check`);
 
     expect(stdout).toContain('up to date');
   });
