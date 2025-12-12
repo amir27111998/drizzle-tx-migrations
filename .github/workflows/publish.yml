@@ -1,0 +1,95 @@
+name: Publish to npm
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  publish:
+    name: Check version and publish
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write # Required for creating tags
+      id-token: write # Required for npm provenance
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history and tags
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check if version needs publishing
+        id: version_check
+        run: |
+          # Get package.json version
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          echo "Package version: $PACKAGE_VERSION"
+
+          # Get latest git tag (remove 'v' prefix if exists)
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          LATEST_VERSION=${LATEST_TAG#v}
+          echo "Latest tag version: $LATEST_VERSION"
+
+          # Compare versions
+          if [ "$PACKAGE_VERSION" != "$LATEST_VERSION" ]; then
+            echo "Version updated from $LATEST_VERSION to $PACKAGE_VERSION"
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+            echo "version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "Version unchanged, skipping publish"
+            echo "should_publish=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run linter
+        if: steps.version_check.outputs.should_publish == 'true'
+        run: npm run lint
+
+      - name: Run unit tests
+        if: steps.version_check.outputs.should_publish == 'true'
+        run: npm test
+
+      - name: Build package
+        if: steps.version_check.outputs.should_publish == 'true'
+        run: npm run build
+
+      - name: Create git tag
+        if: steps.version_check.outputs.should_publish == 'true'
+        run: |
+          VERSION=${{ steps.version_check.outputs.version }}
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "v$VERSION"
+
+      - name: Publish to npm
+        if: steps.version_check.outputs.should_publish == 'true'
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        if: steps.version_check.outputs.should_publish == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ steps.version_check.outputs.version }}';
+            await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: `v${version}`,
+              name: `v${version}`,
+              body: `## Release v${version}\n\nAutomatically published to npm.\n\n📦 [View on npm](https://www.npmjs.com/package/drizzle-tx-migrations/v/${version})`,
+              draft: false,
+              prerelease: false
+            });

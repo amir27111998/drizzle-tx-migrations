@@ -4,10 +4,11 @@
 
 TypeORM-like migrations for Drizzle ORM with full transaction support. This package provides a robust migration system with up/down migrations, individual rollback control, and multi-file schema support.
 
+[![npm version](https://img.shields.io/npm/v/drizzle-tx-migrations.svg)](https://www.npmjs.com/package/drizzle-tx-migrations)
 [![CI](https://github.com/amir27111998/drizzle-tx-migrations/actions/workflows/ci.yml/badge.svg)](https://github.com/amir27111998/drizzle-tx-migrations/actions/workflows/ci.yml)
 [![Tests](https://img.shields.io/badge/tests-33%20passing-brightgreen)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue)]()
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)]()
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/amir27111998/drizzle-tx-migrations/blob/main/LICENSE)
 
 ## Features
 
@@ -36,6 +37,7 @@ TypeORM-like migrations for Drizzle ORM with full transaction support. This pack
 - [Migration Patterns](#migration-patterns)
 - [Programmatic Usage](#programmatic-usage)
 - [Troubleshooting](#troubleshooting)
+- [Publishing & Releases](#publishing--releases)
 - [Contributing](#contributing)
 
 ## Why This Package?
@@ -724,6 +726,73 @@ class MigrationValidator {
   checkForConflicts(executedMigrations: string[]): ValidationResult
   async check(getStatus: () => Promise<any>, options?: { failOnPending?: boolean }): Promise<CheckResult>
 }
+```
+
+## Publishing & Releases
+
+This package uses **fully automated** publishing to npm via GitHub Actions.
+
+### How It Works
+
+When you merge to `main` branch:
+
+1. **GitHub Action checks** if `package.json` version is different from the latest git tag
+2. **If version changed**:
+   - Runs tests and linter
+   - Builds the package
+   - Creates a git tag (e.g., `v1.0.1`)
+   - Publishes to npm
+   - Creates a GitHub Release
+3. **If version unchanged**: Skips publishing
+
+### Creating a New Release
+
+Simply update the version in `package.json` and merge to main:
+
+```bash
+# 1. Update version
+npm version patch  # 1.0.0 -> 1.0.1 (bug fixes)
+npm version minor  # 1.0.0 -> 1.1.0 (new features)
+npm version major  # 1.0.0 -> 2.0.0 (breaking changes)
+
+# 2. Commit and push
+git add package.json
+git commit -m "chore: bump version to 1.0.1"
+git push origin main
+
+# 3. GitHub Actions automatically handles the rest!
+```
+
+**That's it!** The workflow will:
+- ✅ Run all tests
+- ✅ Create git tag `v1.0.1`
+- ✅ Publish to npm
+- ✅ Create GitHub Release
+
+### Prerequisites for Publishing
+
+**Repository Maintainers**: Add npm token to GitHub secrets:
+
+1. Generate npm token: `npm token create --access public` (requires npm account)
+2. Add to GitHub: Settings → Secrets → Actions → New secret
+3. Name: `NPM_TOKEN`
+4. Value: Your npm token
+
+### Workflow Behavior
+
+| Scenario | Action |
+|----------|--------|
+| `package.json` version = latest tag | Skip (no publish) |
+| `package.json` version > latest tag | Publish new version |
+| `package.json` version < latest tag | Skip (warning logged) |
+| No tags exist | Publish as initial version |
+
+### Manual Publishing (Emergency Only)
+
+```bash
+npm run build
+npm test
+npm publish
 ```
 
 ## Contributing

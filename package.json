@@ -7,6 +7,19 @@
   "bin": {
     "drizzle-tx-migrations": "dist/cli.js"
   },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amir27111998/drizzle-tx-migrations.git"
+  },
+  "bugs": {
+    "url": "https://github.com/amir27111998/drizzle-tx-migrations/issues"
+  },
+  "homepage": "https://github.com/amir27111998/drizzle-tx-migrations#readme",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
