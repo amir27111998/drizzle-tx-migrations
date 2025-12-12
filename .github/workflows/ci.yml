@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
-    branches: [main, develop]
+    branches: [main]
 
 jobs:
   build:
@@ -93,7 +93,7 @@ jobs:
         with:
           name: unit-test-results-node-${{ matrix.node-version }}
           path: coverage/
-          retention-days: 7
+          retention-days: 1
 
   integration-tests:
     name: Integration Tests
@@ -135,7 +135,7 @@ jobs:
         with:
           name: integration-test-results
           path: coverage/
-          retention-days: 7
+          retention-days: 1
 
       - name: Stop test databases
         if: always()
