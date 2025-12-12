@@ -42,7 +42,7 @@
     "mysql",
     "sqlite"
   ],
-  "author": "",
+  "author": "amir27111998",
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^30.0.0",
