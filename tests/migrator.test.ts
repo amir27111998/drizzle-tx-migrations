@@ -27,12 +27,14 @@ class MockDatabase {
 
 describe('Migrator', () => {
   let testDir: string;
+  let testDb: string;
   let mockDb: MockDatabase;
   let migrator: Migrator;
 
   beforeEach(() => {
     const setup = setupTestEnvironment();
     testDir = setup.testDir;
+    testDb = setup.testDb;
 
     // Use mock database instead of real SQLite
     mockDb = new MockDatabase();
@@ -47,7 +49,7 @@ describe('Migrator', () => {
   });
 
   afterEach(() => {
-    cleanupTestEnvironment();
+    cleanupTestEnvironment(testDir, testDb);
   });
 
   test('should initialize migration table', async () => {
