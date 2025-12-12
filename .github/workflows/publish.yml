@@ -63,6 +63,12 @@ jobs:
         if: steps.version_check.outputs.should_publish == 'true'
         run: npm run build
 
+      - name: Publish to npm
+        if: steps.version_check.outputs.should_publish == 'true'
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Create git tag
         if: steps.version_check.outputs.should_publish == 'true'
         run: |
@@ -71,12 +77,6 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -a "v$VERSION" -m "Release v$VERSION"
           git push origin "v$VERSION"
-
-      - name: Publish to npm
-        if: steps.version_check.outputs.should_publish == 'true'
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub Release
         if: steps.version_check.outputs.should_publish == 'true'
