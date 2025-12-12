@@ -1,0 +1,98 @@
+{
+  "name": "drizzle-tx-migrations",
+  "version": "1.0.0",
+  "description": "TypeORM-like migrations for Drizzle ORM with transaction support",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "drizzle-tx-migrations": "dist/cli.js"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/amir27111998/drizzle-tx-migrations.git"
+  },
+  "bugs": {
+    "url": "https://github.com/amir27111998/drizzle-tx-migrations/issues"
+  },
+  "homepage": "https://github.com/amir27111998/drizzle-tx-migrations#readme",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "migration:generate": "node dist/cli.js generate",
+    "migration:run": "node dist/cli.js up",
+    "migration:revert": "node dist/cli.js down",
+    "migration:status": "node dist/cli.js status",
+    "migration:check": "node dist/cli.js check",
+    "migration:validate": "node dist/cli.js validate",
+    "test": "jest --testPathIgnorePatterns=integration",
+    "test:integration": "jest integration --runInBand",
+    "test:integration:postgres": "jest integration/postgres --runInBand",
+    "test:integration:mysql": "jest integration/mysql --runInBand",
+    "test:integration:cli": "jest integration/cli --runInBand",
+    "test:all": "npm run test && npm run test:integration",
+    "test:watch": "jest --watch --testPathIgnorePatterns=integration",
+    "test:db:up": "docker compose -f docker-compose.test.yml up -d && sleep 5",
+    "test:db:down": "docker compose -f docker-compose.test.yml down -v",
+    "prepublishOnly": "npm run lint && npm run format:check && npm run build && npm test"
+  },
+  "keywords": [
+    "drizzle",
+    "drizzle-orm",
+    "migrations",
+    "database",
+    "typeorm",
+    "transaction",
+    "postgresql",
+    "mysql",
+    "sqlite"
+  ],
+  "author": "amir27111998",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/mysql": "^2.15.27",
+    "@types/node": "^20.19.26",
+    "@types/pg": "^8.16.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.0.1",
+    "jest": "^30.2.0",
+    "prettier": "^3.1.1",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "drizzle-kit": "^0.20.0",
+    "drizzle-orm": ">=0.29.0",
+    "jiti": "^2.6.1"
+  },
+  "peerDependencies": {
+    "better-sqlite3": ">=8.0.0 || *",
+    "drizzle-orm": ">=0.29.0",
+    "mysql2": "^3.15.3",
+    "pg": "^8.16.3"
+  },
+  "peerDependenciesMeta": {
+    "pg": {
+      "optional": true
+    },
+    "mysql2": {
+      "optional": true
+    },
+    "better-sqlite3": {
+      "optional": true
+    }
+  }
+}

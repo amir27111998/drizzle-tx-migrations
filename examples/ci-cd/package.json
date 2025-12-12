@@ -1,0 +1,16 @@
+{
+  "name": "migration-cicd-example",
+  "version": "1.0.0",
+  "scripts": {
+    "migration:check": "drizzle-tx-migrations check",
+    "migration:validate": "drizzle-tx-migrations validate",
+    "migration:run": "drizzle-tx-migrations up",
+    "migration:status": "drizzle-tx-migrations status",
+    "test:migrations": "npm run migration:validate && npm run migration:check"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.29.0",
+    "drizzle-tx-migrations": "^1.0.0",
+    "pg": "^8.11.3"
+  }
+}
