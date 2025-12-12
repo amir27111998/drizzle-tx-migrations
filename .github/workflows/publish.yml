@@ -29,27 +29,54 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Check if version needs publishing
+      - name: Check and prepare version
         id: version_check
         run: |
           # Get package.json version
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          echo "Package version: $PACKAGE_VERSION"
+          echo "Current package.json version: $PACKAGE_VERSION"
 
           # Get latest git tag (remove 'v' prefix if exists)
           LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
           LATEST_VERSION=${LATEST_TAG#v}
           echo "Latest tag version: $LATEST_VERSION"
 
-          # Compare versions
-          if [ "$PACKAGE_VERSION" != "$LATEST_VERSION" ]; then
-            echo "Version updated from $LATEST_VERSION to $PACKAGE_VERSION"
+          # Function to compare semantic versions
+          version_gt() {
+            test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"
+          }
+
+          # Determine what to do
+          if [ "$PACKAGE_VERSION" = "$LATEST_VERSION" ]; then
+            # Same version - auto-increment patch
+            echo "⚠️ Version unchanged ($PACKAGE_VERSION), auto-incrementing patch..."
+            npm version patch --no-git-tag-version
+            NEW_VERSION=$(node -p "require('./package.json').version")
+            echo "✅ Auto-incremented to: $NEW_VERSION"
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+            echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+            echo "auto_incremented=true" >> $GITHUB_OUTPUT
+          elif version_gt "$PACKAGE_VERSION" "$LATEST_VERSION"; then
+            # Package version is newer - use it
+            echo "✅ Version updated from $LATEST_VERSION to $PACKAGE_VERSION"
             echo "should_publish=true" >> $GITHUB_OUTPUT
             echo "version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+            echo "auto_incremented=false" >> $GITHUB_OUTPUT
           else
-            echo "Version unchanged, skipping publish"
+            # Package version is older than latest tag - error
+            echo "❌ ERROR: package.json version ($PACKAGE_VERSION) is older than latest tag ($LATEST_VERSION)"
             echo "should_publish=false" >> $GITHUB_OUTPUT
+            exit 1
           fi
+
+      - name: Commit auto-incremented version
+        if: steps.version_check.outputs.auto_incremented == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git commit -m "chore: auto-increment version to ${{ steps.version_check.outputs.version }} [skip ci]"
+          git push origin main
 
       - name: Run linter
         if: steps.version_check.outputs.should_publish == 'true'
