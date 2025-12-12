@@ -1,35 +1,34 @@
-const { test, describe, beforeEach, afterEach } = require('node:test');
-const assert = require('node:assert');
-const fs = require('fs');
-const path = require('path');
-const { setupTestEnvironment, cleanupTestEnvironment } = require('./setup');
+import * as fs from 'fs';
+import * as path from 'path';
+import { Migrator } from '../src/migrator';
+import { setupTestEnvironment, cleanupTestEnvironment } from './setup';
 
 // Mock database for testing without requiring better-sqlite3
 class MockDatabase {
-  constructor() {
-    this.queries = [];
-    this.tables = new Set();
-  }
+  queries: string[] = [];
+  tables: Set<string> = new Set();
 
-  execute(query) {
+  execute(query: any): Promise<{ rows: any[]; rowCount: number }> {
     // Store both the query object and its string representation
     const queryStr = query?.sql || query?.toString() || String(query);
     this.queries.push(queryStr);
     return Promise.resolve({ rows: [], rowCount: 0 });
   }
 
-  run(query) {
+  run(query: string): { rows: any[]; rowCount: number } {
     this.queries.push(query);
     return { rows: [], rowCount: 0 };
   }
 
-  all(query) {
+  all(query: string): any[] {
     return [];
   }
 }
 
 describe('Migrator', () => {
-  let testDir, mockDb, migrator;
+  let testDir: string;
+  let mockDb: MockDatabase;
+  let migrator: Migrator;
 
   beforeEach(() => {
     const setup = setupTestEnvironment();
@@ -38,11 +37,8 @@ describe('Migrator', () => {
     // Use mock database instead of real SQLite
     mockDb = new MockDatabase();
 
-    // Dynamically import to avoid issues
-    const { Migrator } = require('../dist/migrator');
-
     migrator = new Migrator({
-      db: mockDb,
+      db: mockDb as any,
       dialect: 'sqlite',
       config: {
         migrationsFolder: testDir,
@@ -59,7 +55,7 @@ describe('Migrator', () => {
     await migrator.initialize();
 
     // Verify execute was called (table creation attempted)
-    assert.ok(mockDb.queries.length > 0, 'Should attempt to create migration table');
+    expect(mockDb.queries.length).toBeGreaterThan(0);
   });
 
   test('should detect pending migrations', async () => {
@@ -80,18 +76,18 @@ describe('Migrator', () => {
       `
     );
 
+    // Verify file was created
+    expect(fs.existsSync(migrationPath)).toBe(true);
+
     const status = await migrator.getStatus();
 
-    assert.ok(status.pending.length >= 1, 'Should have pending migrations');
-    assert.ok(
-      status.pending.some((name) => name.includes('1000_create_users')),
-      'Should include our test migration'
-    );
+    expect(status.pending.length).toBeGreaterThanOrEqual(1);
+    expect(status.pending.some((name: string) => name.includes('1000_create_users'))).toBe(true);
   });
 
   test('should track migration execution', async () => {
     // Create and run migration
-    const migrationPath = path.join(testDir, '1000_test.ts');
+    const migrationPath = path.join(testDir, '1000_test.js');
     fs.writeFileSync(
       migrationPath,
       `
@@ -110,16 +106,16 @@ describe('Migrator', () => {
       const result = await migrator.runMigrations();
 
       // Should attempt to run the migration
-      assert.ok(result.executed || result.success !== undefined, 'Should return migration result');
+      expect(result.executed || result.success !== undefined).toBeTruthy();
     } catch (error) {
       // Expected to fail with mock DB, but should attempt the migration
-      assert.ok(true, 'Migration attempted (expected to fail with mock DB)');
+      expect(true).toBe(true);
     }
   });
 
   test('should validate migration file structure', async () => {
     // Create valid migration
-    const migrationPath = path.join(testDir, '1000_valid.ts');
+    const migrationPath = path.join(testDir, '1000_valid.js');
     fs.writeFileSync(
       migrationPath,
       `
@@ -134,21 +130,21 @@ describe('Migrator', () => {
     );
 
     const status = await migrator.getStatus();
-    assert.ok(Array.isArray(status.pending), 'Should return pending migrations array');
-    assert.ok(Array.isArray(status.executed), 'Should return executed migrations array');
+    expect(Array.isArray(status.pending)).toBe(true);
+    expect(Array.isArray(status.executed)).toBe(true);
   });
 
   test('should handle empty migrations folder', async () => {
     const status = await migrator.getStatus();
 
-    assert.strictEqual(status.pending.length, 0, 'Should have no pending migrations');
-    assert.strictEqual(status.executed.length, 0, 'Should have no executed migrations');
+    expect(status.pending).toHaveLength(0);
+    expect(status.executed).toHaveLength(0);
   });
 
   test('should load migration files correctly', async () => {
     // Create multiple migrations
     fs.writeFileSync(
-      path.join(testDir, '1000_first.ts'),
+      path.join(testDir, '1000_first.js'),
       `
       exports.up = async function({ db }) { return Promise.resolve(); };
       exports.down = async function({ db }) { return Promise.resolve(); };
@@ -157,7 +153,7 @@ describe('Migrator', () => {
     );
 
     fs.writeFileSync(
-      path.join(testDir, '2000_second.ts'),
+      path.join(testDir, '2000_second.js'),
       `
       exports.up = async function({ db }) { return Promise.resolve(); };
       exports.down = async function({ db }) { return Promise.resolve(); };
@@ -167,6 +163,6 @@ describe('Migrator', () => {
 
     const status = await migrator.getStatus();
 
-    assert.ok(status.pending.length >= 2, 'Should find multiple migrations');
+    expect(status.pending.length).toBeGreaterThanOrEqual(2);
   });
 });

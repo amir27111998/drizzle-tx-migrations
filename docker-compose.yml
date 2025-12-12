@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: drizzle-migrations-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: test_db
+    ports:
+      - '54322:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - drizzle-network
+
+  # MySQL Database
+  mysql:
+    image: mysql:8-oracle
+    container_name: drizzle-migrations-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: test_db
+      MYSQL_USER: testuser
+      MYSQL_PASSWORD: testpass
+    ports:
+      - '33306:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-ppassword']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - drizzle-network
+
+  # Adminer - Database Management UI
+  adminer:
+    image: adminer:latest
+    container_name: drizzle-migrations-adminer
+    ports:
+      - '8080:8080'
+    depends_on:
+      - postgres
+      - mysql
+    networks:
+      - drizzle-network
+
+volumes:
+  postgres_data:
+    driver: local
+  mysql_data:
+    driver: local
+
+networks:
+  drizzle-network:
+    driver: bridge

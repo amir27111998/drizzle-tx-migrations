@@ -1,8 +1,8 @@
-const fs = require('fs');
-const path = require('path');
+import * as fs from 'fs';
+import * as path from 'path';
 
 // Clean up test artifacts before/after tests
-function setupTestEnvironment() {
+export function setupTestEnvironment(): { testDir: string; testDb: string } {
   const testId = Math.random().toString(36).substring(7);
   const testDir = path.join(__dirname, `test-migrations-${testId}`);
   const testDb = path.join(__dirname, `test-${testId}.db`);
@@ -13,7 +13,7 @@ function setupTestEnvironment() {
   return { testDir, testDb };
 }
 
-function cleanupTestEnvironment() {
+export function cleanupTestEnvironment(): void {
   // Clean all test directories and databases
   const files = fs.readdirSync(__dirname);
 
@@ -40,5 +40,3 @@ function cleanupTestEnvironment() {
 
 // Clean everything on module load
 cleanupTestEnvironment();
-
-module.exports = { setupTestEnvironment, cleanupTestEnvironment };

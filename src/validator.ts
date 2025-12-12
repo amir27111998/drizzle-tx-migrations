@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { pathToFileURL } from 'url';
 
 export interface ValidationResult {
   valid: boolean;
@@ -28,7 +29,9 @@ export class MigrationValidator {
       return {
         valid: true,
         errors: [],
-        warnings: ['Migrations folder does not exist yet. Run generate to create your first migration.'],
+        warnings: [
+          'Migrations folder does not exist yet. Run generate to create your first migration.',
+        ],
       };
     }
 
@@ -49,10 +52,12 @@ export class MigrationValidator {
     const timestamps = new Map<string, string[]>();
     for (const file of files) {
       const timestamp = file.split('_')[0];
-      if (!timestamps.has(timestamp)) {
-        timestamps.set(timestamp, []);
+      const existing = timestamps.get(timestamp);
+      if (existing) {
+        existing.push(file);
+      } else {
+        timestamps.set(timestamp, [file]);
       }
-      timestamps.get(timestamp)!.push(file);
     }
 
     for (const [timestamp, fileList] of timestamps) {
@@ -92,7 +97,10 @@ export class MigrationValidator {
     };
   }
 
-  private async validateMigrationFile(filePath: string, fileName: string): Promise<ValidationResult> {
+  private async validateMigrationFile(
+    filePath: string,
+    fileName: string
+  ): Promise<ValidationResult> {
     const errors: string[] = [];
     const warnings: string[] = [];
 
@@ -107,7 +115,49 @@ export class MigrationValidator {
       }
 
       // Try to import the migration
-      const migrationModule = await import(filePath);
+      // For TypeScript files during validation, we can skip the full import
+      // and just do basic syntax validation from the source code
+      const isTsFile = filePath.endsWith('.ts');
+
+      if (isTsFile) {
+        // For TypeScript files, do syntax-only validation without importing
+        // Check for export of up/down functions in the source
+        const hasUpExport =
+          content.match(/export\s+(async\s+)?function\s+up\s*\(/) ||
+          content.match(/export\s+const\s+up\s*=/) ||
+          content.match(/up\s*:\s*(async\s+)?\(/);
+        const hasDownExport =
+          content.match(/export\s+(async\s+)?function\s+down\s*\(/) ||
+          content.match(/export\s+const\s+down\s*=/) ||
+          content.match(/down\s*:\s*(async\s+)?\(/);
+
+        if (!hasUpExport) {
+          errors.push(`${fileName}: Missing or invalid up() function export`);
+        }
+        if (!hasDownExport) {
+          errors.push(`${fileName}: Missing or invalid down() function export`);
+        }
+
+        // Check for MigrationContext usage
+        const hasDbParam = content.includes('{ db') || content.includes('{db');
+        const hasSqlParam =
+          content.includes('sql') &&
+          (content.includes('import') || content.includes('MigrationContext'));
+
+        if (!hasDbParam && !hasSqlParam) {
+          warnings.push(
+            `${fileName}: up() or down() may not be using MigrationContext parameters (db, sql)`
+          );
+        }
+
+        // Skip the actual import for TypeScript files during validation
+        return { valid: errors.length === 0, errors, warnings };
+      }
+
+      // For JavaScript files, we can safely import
+      const absolutePath = path.resolve(filePath);
+      const fileUrl = pathToFileURL(absolutePath).href;
+      const migrationModule = await import(fileUrl);
       const migration = migrationModule.default || migrationModule;
 
       // Check if up function exists and is a function
@@ -127,7 +177,9 @@ export class MigrationValidator {
         const hasSqlParam = upStr.includes('sql') || upStr.match(/\{\s*sql\s*[,}]/);
 
         if (!hasDbParam && !hasSqlParam) {
-          warnings.push(`${fileName}: up() function may not be using MigrationContext parameters (db, sql)`);
+          warnings.push(
+            `${fileName}: up() function may not be using MigrationContext parameters (db, sql)`
+          );
         }
       }
 
@@ -137,7 +189,9 @@ export class MigrationValidator {
         const hasSqlParam = downStr.includes('sql') || downStr.match(/\{\s*sql\s*[,}]/);
 
         if (!hasDbParam && !hasSqlParam) {
-          warnings.push(`${fileName}: down() function may not be using MigrationContext parameters (db, sql)`);
+          warnings.push(
+            `${fileName}: down() function may not be using MigrationContext parameters (db, sql)`
+          );
         }
       }
 
@@ -155,7 +209,6 @@ export class MigrationValidator {
           warnings.push(`${fileName}: down() function should return Promise<void>`);
         }
       }
-
     } catch (error) {
       errors.push(`${fileName}: Failed to load migration: ${error}`);
     }
@@ -240,15 +293,9 @@ export class MigrationValidator {
       };
     }
 
-    const allErrors = [
-      ...validation.errors,
-      ...(conflictCheck?.errors || []),
-    ];
+    const allErrors = [...validation.errors, ...(conflictCheck?.errors || [])];
 
-    const allWarnings = [
-      ...validation.warnings,
-      ...(conflictCheck?.warnings || []),
-    ];
+    const allWarnings = [...validation.warnings, ...(conflictCheck?.warnings || [])];
 
     const hasPendingMigrations = (status?.pending.length || 0) > 0;
     const hasValidationErrors = allErrors.length > 0;

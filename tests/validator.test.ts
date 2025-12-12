@@ -1,13 +1,10 @@
-const { test, describe, beforeEach, afterEach } = require('node:test');
-const assert = require('node:assert');
-const fs = require('fs');
-const path = require('path');
-const { MigrationValidator } = require('../dist/validator');
-const { MigrationGenerator } = require('../dist/generator');
-const { setupTestEnvironment, cleanupTestEnvironment } = require('./setup');
+import * as fs from 'fs';
+import * as path from 'path';
+import { MigrationValidator } from '../src/validator';
+import { setupTestEnvironment, cleanupTestEnvironment } from './setup';
 
 describe('MigrationValidator', () => {
-  let testDir;
+  let testDir: string;
 
   beforeEach(() => {
     const setup = setupTestEnvironment();
@@ -39,8 +36,8 @@ describe('MigrationValidator', () => {
     const validator = new MigrationValidator(testDir);
     const result = await validator.validate();
 
-    assert.strictEqual(result.valid, true, 'Validation should pass');
-    assert.strictEqual(result.errors.length, 0, 'Should have no errors');
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
   });
 
   test('should detect missing up function', async () => {
@@ -60,10 +57,7 @@ describe('MigrationValidator', () => {
     const result = await validator.validate();
 
     // Should either fail validation or have errors about missing up function
-    assert.ok(
-      result.valid === false || result.errors.length > 0,
-      'Validation should fail or have errors'
-    );
+    expect(result.valid === false || result.errors.length > 0).toBe(true);
   });
 
   test('should detect missing down function', async () => {
@@ -82,11 +76,8 @@ describe('MigrationValidator', () => {
     const validator = new MigrationValidator(testDir);
     const result = await validator.validate();
 
-    assert.strictEqual(result.valid, false, 'Validation should fail');
-    assert.ok(
-      result.errors.some((e) => e.includes('down()')),
-      'Should detect missing down function'
-    );
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e: string) => e.includes('down()'))).toBe(true);
   });
 
   test('should detect duplicate timestamps', async () => {
@@ -113,11 +104,8 @@ describe('MigrationValidator', () => {
     const validator = new MigrationValidator(testDir);
     const result = await validator.validate();
 
-    assert.strictEqual(result.valid, false, 'Validation should fail');
-    assert.ok(
-      result.errors.some((e) => e.includes('Duplicate timestamp')),
-      'Should detect duplicate timestamps'
-    );
+    expect(result.valid).toBe(false);
+    expect(result.errors.some((e: string) => e.includes('Duplicate timestamp'))).toBe(true);
   });
 
   test('should warn about missing parameters', async () => {
@@ -139,22 +127,16 @@ describe('MigrationValidator', () => {
     const result = await validator.validate();
 
     // Should pass but with warnings
-    assert.ok(result.warnings.length > 0, 'Should have warnings');
-    assert.ok(
-      result.warnings.some((w) => w.includes('MigrationContext')),
-      'Should warn about missing parameters'
-    );
+    expect(result.warnings.length).toBeGreaterThan(0);
+    expect(result.warnings.some((w: string) => w.includes('MigrationContext'))).toBe(true);
   });
 
   test('should handle non-existent migrations folder', async () => {
     const validator = new MigrationValidator(path.join(testDir, 'non-existent'));
     const result = await validator.validate();
 
-    assert.strictEqual(result.valid, true, 'Should handle gracefully');
-    assert.ok(
-      result.warnings.some((w) => w.includes('does not exist')),
-      'Should warn about missing folder'
-    );
+    expect(result.valid).toBe(true);
+    expect(result.warnings.some((w: string) => w.includes('does not exist'))).toBe(true);
   });
 
   test('should detect migration conflicts', () => {
@@ -170,10 +152,7 @@ describe('MigrationValidator', () => {
 
     const result = validator.checkForConflicts(executedMigrations);
 
-    assert.ok(result.warnings.length > 0, 'Should have warnings');
-    assert.ok(
-      result.warnings.some((w) => w.includes('2000_second')),
-      'Should detect out-of-order migration'
-    );
+    expect(result.warnings.length).toBeGreaterThan(0);
+    expect(result.warnings.some((w: string) => w.includes('2000_second'))).toBe(true);
   });
 });

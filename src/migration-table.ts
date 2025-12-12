@@ -59,12 +59,17 @@ export class MigrationTable {
   private normalizeRows(result: any): MigrationMeta[] {
     let rows: any[] = [];
 
-    if (Array.isArray(result)) {
-      rows = result;
-    } else if (result.rows) {
-      rows = result.rows;
-    } else if (result[0]) {
+    // MySQL (mysql2) returns [rows, metadata]
+    if (Array.isArray(result) && Array.isArray(result[0])) {
       rows = result[0];
+    }
+    // PostgreSQL (pg) returns { rows: [...] }
+    else if (result.rows) {
+      rows = result.rows;
+    }
+    // SQLite might return rows directly
+    else if (Array.isArray(result)) {
+      rows = result;
     }
 
     return rows.map((row: any) => ({
@@ -77,7 +82,9 @@ export class MigrationTable {
 
   async addMigration(name: string, timestamp: number): Promise<void> {
     const query = this.getInsertQuery();
-    await this.db.execute(sql.raw(query.replace('$name', name).replace('$timestamp', String(timestamp))));
+    await this.db.execute(
+      sql.raw(query.replace('$name', name).replace('$timestamp', String(timestamp)))
+    );
   }
 
   private getInsertQuery(): string {

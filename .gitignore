@@ -1,9 +1,13 @@
 # Claude Code
 .claude/
 
+# Local testing scripts (not committed)
+test-local.sh
+test-*.sh
+*-local.sh
+
 # Dependencies
 node_modules/
-package-lock.json
 yarn.lock
 pnpm-lock.yaml
 

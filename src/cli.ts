@@ -12,16 +12,36 @@ async function main() {
     process.exit(0);
   }
 
-  const configPath = path.join(process.cwd(), 'drizzle-migrations.config.ts');
+  // Check for config file (.js or .ts)
+  const configPathJs = path.join(process.cwd(), 'drizzle-migrations.config.js');
+  const configPathTs = path.join(process.cwd(), 'drizzle-migrations.config.ts');
 
-  if (!fs.existsSync(configPath) && !fs.existsSync(configPath.replace('.ts', '.js'))) {
-    console.error('Error: drizzle-migrations.config.ts not found in current directory.');
+  let configPath: string;
+  let isTsConfig = false;
+
+  if (fs.existsSync(configPathJs)) {
+    configPath = configPathJs;
+  } else if (fs.existsSync(configPathTs)) {
+    configPath = configPathTs;
+    isTsConfig = true;
+  } else {
+    console.error('Error: drizzle-migrations.config.js or .ts not found in current directory.');
     console.error('Please create a configuration file first.');
     process.exit(1);
   }
 
   try {
-    const config = await import(configPath);
+    // For TypeScript config files, use jiti to load them
+    let config: any;
+    if (isTsConfig) {
+      // Use jiti to load TypeScript config files
+      const { createJiti } = await import('jiti');
+      const jiti = createJiti(__filename);
+      config = jiti(configPath);
+    } else {
+      config = await import(configPath);
+    }
+
     const { migrator, generator } = config.default || config;
 
     switch (command) {
@@ -114,9 +134,10 @@ async function main() {
 
       case 'check': {
         const { MigrationValidator } = await import('./validator');
-        const migrationsFolder = config.default?.migrator?.options?.config?.migrationsFolder ||
-                                 config.migrator?.options?.config?.migrationsFolder ||
-                                 './migrations';
+        const migrationsFolder =
+          config.default?.migrator?.options?.config?.migrationsFolder ||
+          config.migrator?.options?.config?.migrationsFolder ||
+          './migrations';
 
         const validator = new MigrationValidator(migrationsFolder);
 
@@ -124,10 +145,7 @@ async function main() {
 
         console.log('🔍 Checking migrations...\n');
 
-        const result = await validator.check(
-          () => migrator.getStatus(),
-          { failOnPending }
-        );
+        const result = await validator.check(() => migrator.getStatus(), { failOnPending });
 
         // Print executed/pending summary
         console.log(`✓ Executed migrations: ${result.executed}`);
@@ -152,7 +170,9 @@ async function main() {
           if (result.pending === 0) {
             console.log('✅ All checks passed! Database is up to date.');
           } else {
-            console.log(`✅ All checks passed! (${result.pending} pending migration${result.pending > 1 ? 's' : ''} ready to run)`);
+            console.log(
+              `✅ All checks passed! (${result.pending} pending migration${result.pending > 1 ? 's' : ''} ready to run)`
+            );
           }
           process.exit(0);
         } else {
@@ -166,13 +186,15 @@ async function main() {
           }
           process.exit(1);
         }
+        break;
       }
 
       case 'validate': {
         const { MigrationValidator } = await import('./validator');
-        const migrationsFolder = config.default?.migrator?.options?.config?.migrationsFolder ||
-                                 config.migrator?.options?.config?.migrationsFolder ||
-                                 './migrations';
+        const migrationsFolder =
+          config.default?.migrator?.options?.config?.migrationsFolder ||
+          config.migrator?.options?.config?.migrationsFolder ||
+          './migrations';
 
         const validator = new MigrationValidator(migrationsFolder);
 

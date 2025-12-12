@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database for testing - non-standard port
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: drizzle-test-postgres
+    environment:
+      POSTGRES_USER: testuser
+      POSTGRES_PASSWORD: testpass
+      POSTGRES_DB: test_migrations
+    ports:
+      - '54320:5432'  # Non-standard external port
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U testuser']
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    tmpfs:
+      - /var/lib/postgresql/data
+
+  # MySQL Database for testing - non-standard port
+  mysql-test:
+    image: mysql:8
+    container_name: drizzle-test-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: test_migrations
+      MYSQL_USER: testuser
+      MYSQL_PASSWORD: testpass
+    ports:
+      - '33060:3306'  # Non-standard external port
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-prootpass']
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    tmpfs:
+      - /var/lib/mysql
+
+networks:
+  default:
+    name: drizzle-test-network

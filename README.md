@@ -4,7 +4,8 @@
 
 TypeORM-like migrations for Drizzle ORM with full transaction support. This package provides a robust migration system with up/down migrations, individual rollback control, and multi-file schema support.
 
-[![Tests](https://img.shields.io/badge/tests-17%20passing-brightgreen)]()
+[![CI](https://github.com/amir27111998/drizzle-tx-migrations/actions/workflows/ci.yml/badge.svg)](https://github.com/amir27111998/drizzle-tx-migrations/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-33%20passing-brightgreen)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue)]()
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)]()
 
@@ -18,7 +19,9 @@ TypeORM-like migrations for Drizzle ORM with full transaction support. This pack
 - ✅ **Multi-File Schemas**: Import schemas from multiple files
 - ✅ **Type-Safe**: Full TypeScript support with type inference
 - ✅ **CLI & Programmatic**: Use via CLI or directly in your code
-- ✅ **Comprehensive Tests**: 17 tests covering all core functionality
+- ✅ **Comprehensive Tests**: 33 tests including unit & integration tests
+  - 17 unit tests (Generator, Migrator, Validator)
+  - 16 integration tests (PostgreSQL, MySQL, CLI)
 
 ## Table of Contents
 
@@ -47,7 +50,7 @@ This package addresses several issues found in other Drizzle migration tools:
 | Transaction support | ⚠️ Partial | ✅ Complete |
 | Check command (CI/CD) | ❌ No | ✅ Yes |
 | Validation | ❌ No | ✅ Yes |
-| Tests | ❌ No | ✅ 17 tests |
+| Tests | ❌ No | ✅ 33 tests (unit + integration) |
 | Rollback to specific | ❌ No | ✅ `--to=name` |
 
 ## Installation
@@ -309,19 +312,38 @@ drizzle-tx-migrations check
 
 ## Testing
 
-### Running Unit Tests
+### Running All Tests
 
 ```bash
+# Install dependencies
 npm install
 npm run build
+
+# Run unit tests only
 npm test
+
+# Start test databases (PostgreSQL & MySQL)
+npm run test:db:up
+
+# Run all integration tests
+npm run test:integration
+
+# Or run specific integration tests
+npm run test:integration:postgres
+npm run test:integration:mysql
+npm run test:integration:cli
+
+# Stop test databases
+npm run test:db:down
 ```
 
 **Test Coverage:**
-- ✅ 17 tests across 3 suites
-- ✅ Generator (file creation, naming)
-- ✅ Migrator (execution, tracking)
-- ✅ Validator (syntax, conflicts)
+- ✅ **33 total tests**
+  - **Unit Tests (17):** Generator, Migrator, Validator
+  - **Integration Tests (16):**
+    - PostgreSQL (5 tests): Simple migrations, transaction rollback, multiple migrations, revert operations
+    - MySQL (4 tests): DDL operations, MySQL-specific transaction behavior
+    - CLI (7 tests): All CLI commands (generate, status, up, down, check, validate)
 
 ### Testing with Local Database
 
@@ -369,7 +391,19 @@ npx drizzle-tx-migrations up
 
 ## CI/CD Integration
 
-### GitHub Actions Example
+### GitHub Actions
+
+This package includes a comprehensive CI/CD pipeline that automatically runs on every push and pull request:
+
+- ✅ **Build verification**
+- ✅ **Linting** (ESLint + Prettier)
+- ✅ **Unit tests** (17 tests on Node 18 & 20)
+- ✅ **Integration tests** (16 tests with PostgreSQL & MySQL using Docker)
+- ✅ **Test artifacts** uploaded for review
+
+View the [CI workflow](.github/workflows/ci.yml) or check the [Actions tab](https://github.com/amir27111998/drizzle-tx-migrations/actions) for test reports.
+
+### Example: Migration Check in CI
 
 ```yaml
 name: Migration Check
@@ -395,11 +429,11 @@ jobs:
           - 5432:5432
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install dependencies
         run: npm ci
@@ -714,8 +748,9 @@ MIT
 
 ## Support
 
-- Report bugs: [GitHub Issues](https://github.com/yourusername/drizzle-tx-migrations/issues)
+- Report bugs: [GitHub Issues](https://github.com/amir27111998/drizzle-tx-migrations/issues)
 - Questions: Open a discussion on GitHub
+- Repository: [https://github.com/amir27111998/drizzle-tx-migrations](https://github.com/amir27111998/drizzle-tx-migrations)
 
 ---
 

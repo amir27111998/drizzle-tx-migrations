@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import * as fs from 'fs';
 import * as path from 'path';
+import { pathToFileURL } from 'url';
 import { MigrationTable } from './migration-table';
 import type { Migration, MigrationContext, MigratorOptions, MigrationMeta } from './types';
 
@@ -178,7 +179,9 @@ export class Migrator {
   }
 
   private async loadAllMigrations(): Promise<Migration[]> {
-    const migrationsFolder = path.resolve(process.cwd(), this.options.config.migrationsFolder);
+    const migrationsFolder = path.isAbsolute(this.options.config.migrationsFolder)
+      ? this.options.config.migrationsFolder
+      : path.resolve(process.cwd(), this.options.config.migrationsFolder);
 
     if (!fs.existsSync(migrationsFolder)) {
       return [];
@@ -200,20 +203,37 @@ export class Migrator {
   }
 
   private async loadMigration(name: string): Promise<Migration> {
-    const migrationsFolder = path.resolve(process.cwd(), this.options.config.migrationsFolder);
+    const migrationsFolder = path.isAbsolute(this.options.config.migrationsFolder)
+      ? this.options.config.migrationsFolder
+      : path.resolve(process.cwd(), this.options.config.migrationsFolder);
     const tsPath = path.join(migrationsFolder, `${name}.ts`);
     const jsPath = path.join(migrationsFolder, `${name}.js`);
 
     let migrationPath: string;
+    let isTsFile = false;
     if (fs.existsSync(tsPath)) {
       migrationPath = tsPath;
+      isTsFile = true;
     } else if (fs.existsSync(jsPath)) {
       migrationPath = jsPath;
     } else {
       throw new Error(`Migration file not found: ${name}`);
     }
 
-    const migrationModule = await import(migrationPath);
+    // Load migration with jiti for TypeScript files
+    const absolutePath = path.resolve(migrationPath);
+
+    let migrationModule: any;
+    if (isTsFile) {
+      // Use jiti to load TypeScript files
+      const { createJiti } = await import('jiti');
+      const jiti = createJiti(__filename);
+      migrationModule = jiti(absolutePath);
+    } else {
+      const fileUrl = pathToFileURL(absolutePath).href;
+      migrationModule = await import(fileUrl);
+    }
+
     const migration = migrationModule.default || migrationModule;
 
     // Extract timestamp from name (format: TIMESTAMP_name)
