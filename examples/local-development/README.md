@@ -10,7 +10,7 @@ The project includes a Docker Compose setup for local development.
 
 ```bash
 # From project root
-docker-compose up -d
+docker compose up -d
 ```
 
 This starts:
@@ -69,13 +69,13 @@ npm run migration:status
 
 ```bash
 # Stop containers (keeps data)
-docker-compose stop
+docker compose stop
 
 # Stop and remove containers (keeps data in volumes)
-docker-compose down
+docker compose down
 
 # Remove everything including data
-docker-compose down -v
+docker compose down -v
 ```
 
 ## Port Reference
@@ -88,12 +88,12 @@ docker-compose down -v
 
 ## Testing vs Development
 
-**Development (`docker-compose.yml`):**
+**Development (`docker compose.yml`):**
 - Persistent data (survives restarts)
 - Adminer UI included
 - Ports: 54322, 33306
 
-**Testing (`docker-compose.test.yml`):**
+**Testing (`docker compose.test.yml`):**
 - Temporary data (tmpfs, fast)
 - No UI needed
 - Ports: 54320, 33060
@@ -140,7 +140,7 @@ SQLITE_PATH=./test.db
 
 ### Port Already in Use
 
-If ports 54322 or 33306 are taken, edit `docker-compose.yml`:
+If ports 54322 or 33306 are taken, edit `docker compose.yml`:
 
 ```yaml
 postgres:
@@ -158,24 +158,24 @@ Then update `.env` to match.
 
 ```bash
 # Check if containers are running
-docker-compose ps
+docker compose ps
 
 # View logs
-docker-compose logs postgres
-docker-compose logs mysql
+docker compose logs postgres
+docker compose logs mysql
 
 # Restart containers
-docker-compose restart
+docker compose restart
 ```
 
 ### Reset Everything
 
 ```bash
 # Stop and remove all data
-docker-compose down -v
+docker compose down -v
 
 # Start fresh
-docker-compose up -d
+docker compose up -d
 ```
 
 ## Best Practices

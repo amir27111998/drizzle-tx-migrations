@@ -10,7 +10,7 @@ This directory contains various examples showing how to use drizzle-tx-migration
 
 ```bash
 # Start local databases
-docker-compose up -d
+docker compose up -d
 
 # Access Adminer UI at http://localhost:8080
 # PostgreSQL: port 54322
@@ -73,7 +73,7 @@ examples/
 
 ```bash
 # Start databases
-docker-compose up -d
+docker compose up -d
 
 # Copy environment file
 cp .env.example .env
