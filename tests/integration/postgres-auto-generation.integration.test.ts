@@ -259,9 +259,7 @@ describe('PostgreSQL Auto-Generation Integration Tests', () => {
               { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
               { name: 'email', type: 'varchar', notNull: true, primaryKey: false },
             ],
-            indexes: [
-              { name: 'idx_users_email', columns: ['email'], unique: true },
-            ],
+            indexes: [{ name: 'idx_users_email', columns: ['email'], unique: true }],
             foreignKeys: [],
             primaryKey: ['id'],
           },
@@ -485,9 +483,7 @@ export default { up, down };
               { name: 'name', type: 'varchar', notNull: false, primaryKey: false },
               { name: 'age', type: 'integer', notNull: false, primaryKey: false },
             ],
-            indexes: [
-              { name: 'idx_email', columns: ['email'], unique: true },
-            ],
+            indexes: [{ name: 'idx_email', columns: ['email'], unique: true }],
             foreignKeys: [],
             primaryKey: ['id'],
           },

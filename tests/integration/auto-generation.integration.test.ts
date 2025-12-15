@@ -98,7 +98,7 @@ describe('Auto-Generation Integration Tests', () => {
 
   test('should detect schema differences', async () => {
     // Current: empty database
-    const currentSchema: DatabaseSchema = {tables: new Map()};
+    const currentSchema: DatabaseSchema = { tables: new Map() };
 
     // Desired: database with users table
     const desiredSchema: DatabaseSchema = {

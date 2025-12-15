@@ -10,7 +10,9 @@ export const users = pgTable('users', {
 
 export const posts = pgTable('posts', {
   id: serial('id').primaryKey(),
-  userId: integer('user_id').references(() => users.id).notNull(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
   title: varchar('title', { length: 500 }).notNull(),
   content: text('content'),
   published: boolean('published').default(false).notNull(),
@@ -20,8 +22,12 @@ export const posts = pgTable('posts', {
 
 export const comments = pgTable('comments', {
   id: serial('id').primaryKey(),
-  postId: integer('post_id').references(() => posts.id).notNull(),
-  userId: integer('user_id').references(() => users.id).notNull(),
+  postId: integer('post_id')
+    .references(() => posts.id)
+    .notNull(),
+  userId: integer('user_id')
+    .references(() => users.id)
+    .notNull(),
   content: text('content').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });

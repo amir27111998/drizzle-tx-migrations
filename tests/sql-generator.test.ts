@@ -14,7 +14,13 @@ describe('SqlGenerator', () => {
             tableSchema: {
               name: 'users',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'email', type: 'varchar', notNull: true, primaryKey: false },
                 { name: 'name', type: 'varchar', notNull: false, primaryKey: false },
               ],
@@ -47,7 +53,13 @@ describe('SqlGenerator', () => {
             tableSchema: {
               name: 'old_table',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
               ],
               indexes: [],
               foreignKeys: [],
@@ -189,8 +201,20 @@ describe('SqlGenerator', () => {
             tableSchema: {
               name: 'user_roles',
               columns: [
-                { name: 'user_id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: false },
-                { name: 'role_id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: false },
+                {
+                  name: 'user_id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: false,
+                },
+                {
+                  name: 'role_id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: false,
+                },
               ],
               indexes: [],
               foreignKeys: [],
@@ -218,7 +242,13 @@ describe('SqlGenerator', () => {
             tableSchema: {
               name: 'users',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'email', type: 'varchar', notNull: true, primaryKey: false },
               ],
               indexes: [],
@@ -262,7 +292,13 @@ describe('SqlGenerator', () => {
             tableSchema: {
               name: 'data',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'amount', type: 'decimal', notNull: true, primaryKey: false },
                 { name: 'created', type: 'timestamp', notNull: true, primaryKey: false },
               ],
@@ -293,7 +329,13 @@ describe('SqlGenerator', () => {
             tableSchema: {
               name: 'users',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'email', type: 'text', notNull: true, primaryKey: false },
               ],
               indexes: [],
@@ -345,7 +387,13 @@ describe('SqlGenerator', () => {
             tableSchema: {
               name: 'data',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'name', type: 'varchar', notNull: true, primaryKey: false },
                 { name: 'amount', type: 'decimal', notNull: true, primaryKey: false },
                 { name: 'active', type: 'boolean', notNull: true, primaryKey: false },
@@ -376,7 +424,13 @@ describe('SqlGenerator', () => {
             tableSchema: {
               name: 'users',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
               ],
               indexes: [],
               foreignKeys: [],
@@ -415,7 +469,13 @@ describe('SqlGenerator', () => {
             tableSchema: {
               name: 'old',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
               ],
               indexes: [],
               foreignKeys: [],
@@ -451,7 +511,13 @@ describe('SqlGenerator', () => {
             tableSchema: {
               name: 'users',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'email', type: 'varchar', notNull: true, primaryKey: false },
               ],
               indexes: [],
@@ -474,7 +540,13 @@ describe('SqlGenerator', () => {
             tableSchema: {
               name: 'posts',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'user_id', type: 'integer', notNull: true, primaryKey: false },
                 { name: 'title', type: 'varchar', notNull: true, primaryKey: false },
               ],

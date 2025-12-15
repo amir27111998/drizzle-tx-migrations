@@ -12,7 +12,13 @@ describe('SchemaDiffer', () => {
             {
               name: 'users',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'email', type: 'varchar', notNull: true, primaryKey: false },
               ],
               indexes: [],
@@ -38,7 +44,15 @@ describe('SchemaDiffer', () => {
             'old_table',
             {
               name: 'old_table',
-              columns: [{ name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true }],
+              columns: [
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
+              ],
               indexes: [],
               foreignKeys: [],
               primaryKey: ['id'],
@@ -64,7 +78,13 @@ describe('SchemaDiffer', () => {
             {
               name: 'users',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'email', type: 'varchar', notNull: true, primaryKey: false },
               ],
               indexes: [],
@@ -90,7 +110,15 @@ describe('SchemaDiffer', () => {
             'users',
             {
               name: 'users',
-              columns: [{ name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true }],
+              columns: [
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
+              ],
               indexes: [],
               foreignKeys: [],
               primaryKey: ['id'],
@@ -106,7 +134,13 @@ describe('SchemaDiffer', () => {
             {
               name: 'users',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'email', type: 'varchar', notNull: true, primaryKey: false },
               ],
               indexes: [],
@@ -136,7 +170,13 @@ describe('SchemaDiffer', () => {
             {
               name: 'users',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'old_field', type: 'varchar', notNull: false, primaryKey: false },
               ],
               indexes: [],
@@ -153,7 +193,15 @@ describe('SchemaDiffer', () => {
             'users',
             {
               name: 'users',
-              columns: [{ name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true }],
+              columns: [
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
+              ],
               indexes: [],
               foreignKeys: [],
               primaryKey: ['id'],
@@ -179,7 +227,13 @@ describe('SchemaDiffer', () => {
             {
               name: 'users',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'age', type: 'integer', notNull: false, primaryKey: false },
               ],
               indexes: [],
@@ -197,7 +251,13 @@ describe('SchemaDiffer', () => {
             {
               name: 'users',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'age', type: 'bigint', notNull: false, primaryKey: false },
               ],
               indexes: [],
@@ -224,7 +284,13 @@ describe('SchemaDiffer', () => {
             {
               name: 'users',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'email', type: 'varchar', notNull: false, primaryKey: false },
               ],
               indexes: [],
@@ -242,7 +308,13 @@ describe('SchemaDiffer', () => {
             {
               name: 'users',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'email', type: 'varchar', notNull: true, primaryKey: false },
               ],
               indexes: [],
@@ -270,7 +342,13 @@ describe('SchemaDiffer', () => {
             {
               name: 'users',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'email', type: 'varchar', notNull: true, primaryKey: false },
               ],
               indexes: [],
@@ -288,7 +366,13 @@ describe('SchemaDiffer', () => {
             {
               name: 'users',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'email', type: 'varchar', notNull: true, primaryKey: false },
               ],
               indexes: [{ name: 'idx_email', columns: ['email'], unique: true }],
@@ -316,7 +400,13 @@ describe('SchemaDiffer', () => {
             {
               name: 'users',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'email', type: 'varchar', notNull: true, primaryKey: false },
               ],
               indexes: [{ name: 'idx_email', columns: ['email'], unique: true }],
@@ -334,7 +424,13 @@ describe('SchemaDiffer', () => {
             {
               name: 'users',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'email', type: 'varchar', notNull: true, primaryKey: false },
               ],
               indexes: [],
@@ -361,7 +457,13 @@ describe('SchemaDiffer', () => {
             {
               name: 'users',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'email', type: 'varchar', notNull: true, primaryKey: false },
               ],
               indexes: [{ name: 'idx_email', columns: ['email'], unique: false }],
@@ -379,7 +481,13 @@ describe('SchemaDiffer', () => {
             {
               name: 'users',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'email', type: 'varchar', notNull: true, primaryKey: false },
               ],
               indexes: [{ name: 'idx_email', columns: ['email'], unique: true }],
@@ -393,7 +501,9 @@ describe('SchemaDiffer', () => {
       const differ = new SchemaDiffer(currentSchema, desiredSchema);
       const changes = differ.diff();
 
-      const indexChanges = changes.filter((c) => c.type === 'drop_index' || c.type === 'create_index');
+      const indexChanges = changes.filter(
+        (c) => c.type === 'drop_index' || c.type === 'create_index'
+      );
       expect(indexChanges).toHaveLength(2); // Should drop and recreate
     });
   });
@@ -407,7 +517,13 @@ describe('SchemaDiffer', () => {
             {
               name: 'posts',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'user_id', type: 'integer', notNull: true, primaryKey: false },
               ],
               indexes: [],
@@ -425,7 +541,13 @@ describe('SchemaDiffer', () => {
             {
               name: 'posts',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'user_id', type: 'integer', notNull: true, primaryKey: false },
               ],
               indexes: [],
@@ -461,7 +583,13 @@ describe('SchemaDiffer', () => {
             {
               name: 'posts',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'user_id', type: 'integer', notNull: true, primaryKey: false },
               ],
               indexes: [],
@@ -486,7 +614,13 @@ describe('SchemaDiffer', () => {
             {
               name: 'posts',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'user_id', type: 'integer', notNull: true, primaryKey: false },
               ],
               indexes: [],
@@ -515,7 +649,13 @@ describe('SchemaDiffer', () => {
             {
               name: 'users',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'old_field', type: 'varchar', notNull: false, primaryKey: false },
               ],
               indexes: [],
@@ -533,7 +673,13 @@ describe('SchemaDiffer', () => {
             {
               name: 'users',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'email', type: 'varchar', notNull: true, primaryKey: false },
                 { name: 'name', type: 'varchar', notNull: false, primaryKey: false },
               ],
@@ -547,7 +693,13 @@ describe('SchemaDiffer', () => {
             {
               name: 'posts',
               columns: [
-                { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                {
+                  name: 'id',
+                  type: 'integer',
+                  notNull: true,
+                  primaryKey: true,
+                  autoIncrement: true,
+                },
                 { name: 'user_id', type: 'integer', notNull: true, primaryKey: false },
                 { name: 'title', type: 'varchar', notNull: true, primaryKey: false },
               ],

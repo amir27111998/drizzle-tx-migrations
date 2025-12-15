@@ -71,12 +71,10 @@ export const posts = sqliteTable('posts', {
     expect(fs.existsSync(postsSchemaPath)).toBe(true);
 
     // Create generator with both schema files
-    const generator = new MigrationGenerator(
-      testDir,
-      db,
-      'sqlite',
-      [usersSchemaPath, postsSchemaPath]
-    );
+    const generator = new MigrationGenerator(testDir, db, 'sqlite', [
+      usersSchemaPath,
+      postsSchemaPath,
+    ]);
 
     // Generate migration
     const migrationPath = await generator.generateMigration('create_initial_tables');
@@ -194,8 +192,8 @@ export const posts = sqliteTable('posts', {
             columns: [
               { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
               { name: 'email', type: 'text', notNull: true, primaryKey: false },
-              { name: 'name', type: 'text', notNull: false, primaryKey: false },  // NEW
-              { name: 'age', type: 'integer', notNull: false, primaryKey: false },  // NEW
+              { name: 'name', type: 'text', notNull: false, primaryKey: false }, // NEW
+              { name: 'age', type: 'integer', notNull: false, primaryKey: false }, // NEW
             ],
             indexes: [],
             foreignKeys: [],
@@ -209,8 +207,8 @@ export const posts = sqliteTable('posts', {
             columns: [
               { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
               { name: 'title', type: 'text', notNull: true, primaryKey: false },
-              { name: 'content', type: 'text', notNull: false, primaryKey: false },  // NEW
-              { name: 'user_id', type: 'integer', notNull: false, primaryKey: false },  // NEW
+              { name: 'content', type: 'text', notNull: false, primaryKey: false }, // NEW
+              { name: 'user_id', type: 'integer', notNull: false, primaryKey: false }, // NEW
             ],
             indexes: [],
             foreignKeys: [],
@@ -315,7 +313,9 @@ export const posts = sqliteTable('posts', {
     expect(dropStatement).toContain('comments');
 
     // DOWN: should recreate comments table
-    const createStatement = downStatements.find((s) => s.includes('CREATE TABLE') && s.includes('comments'));
+    const createStatement = downStatements.find(
+      (s) => s.includes('CREATE TABLE') && s.includes('comments')
+    );
     expect(createStatement).toBeDefined();
   });
 
@@ -330,9 +330,7 @@ export const posts = sqliteTable('posts', {
               { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
               { name: 'email', type: 'text', notNull: true, primaryKey: false },
             ],
-            indexes: [
-              { name: 'idx_email', columns: ['email'], unique: true },
-            ],
+            indexes: [{ name: 'idx_email', columns: ['email'], unique: true }],
             foreignKeys: [],
             primaryKey: ['id'],
           },
@@ -389,24 +387,16 @@ export const posts = sqliteTable('posts', {
   test('should work with generator that has schema files configured', async () => {
     // Create schema files
     const usersSchemaPath = path.join(schemaDir1, 'users.ts');
-    fs.writeFileSync(
-      usersSchemaPath,
-      `export const users = { name: 'users', columns: [] };`
-    );
+    fs.writeFileSync(usersSchemaPath, `export const users = { name: 'users', columns: [] };`);
 
     const postsSchemaPath = path.join(schemaDir2, 'posts.ts');
-    fs.writeFileSync(
-      postsSchemaPath,
-      `export const posts = { name: 'posts', columns: [] };`
-    );
+    fs.writeFileSync(postsSchemaPath, `export const posts = { name: 'posts', columns: [] };`);
 
     // Generator with schema files (will attempt auto-generation or fallback)
-    const generator = new MigrationGenerator(
-      testDir,
-      db,
-      'sqlite',
-      [usersSchemaPath, postsSchemaPath]
-    );
+    const generator = new MigrationGenerator(testDir, db, 'sqlite', [
+      usersSchemaPath,
+      postsSchemaPath,
+    ]);
 
     const migrationPath = await generator.generateMigration('test_migration');
 
@@ -446,9 +436,7 @@ export const posts = sqliteTable('posts', {
               { name: 'username', type: 'text', notNull: true, primaryKey: false },
               { name: 'created_at', type: 'text', notNull: false, primaryKey: false },
             ],
-            indexes: [
-              { name: 'idx_username', columns: ['username'], unique: true },
-            ],
+            indexes: [{ name: 'idx_username', columns: ['username'], unique: true }],
             foreignKeys: [],
             primaryKey: ['id'],
           },
@@ -497,9 +485,13 @@ export const posts = sqliteTable('posts', {
     expect(upStatements.length).toBeGreaterThanOrEqual(5);
 
     // Check for all operations
-    expect(upStatements.some((s) => s.includes('ALTER TABLE') && s.includes('username'))).toBe(true);
+    expect(upStatements.some((s) => s.includes('ALTER TABLE') && s.includes('username'))).toBe(
+      true
+    );
     expect(upStatements.some((s) => s.includes('CREATE TABLE') && s.includes('posts'))).toBe(true);
-    expect(upStatements.some((s) => s.includes('CREATE TABLE') && s.includes('comments'))).toBe(true);
+    expect(upStatements.some((s) => s.includes('CREATE TABLE') && s.includes('comments'))).toBe(
+      true
+    );
     expect(upStatements.some((s) => s.includes('CREATE UNIQUE INDEX'))).toBe(true);
 
     // Down should reverse everything

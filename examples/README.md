@@ -47,6 +47,7 @@ npm run migration:run
 ### 6. Sample Migrations
 
 **See [sample-migrations/](./sample-migrations/)** for migration file examples:
+
 - Creating tables
 - Adding indexes
 - Data migrations
@@ -80,6 +81,7 @@ cp .env.example .env
 ```
 
 **Ports:**
+
 - PostgreSQL: `54322`
 - MySQL: `33306`
 - Adminer UI: `8080`
@@ -155,6 +157,7 @@ npm run test:db:down
 ```
 
 **Test Ports:**
+
 - PostgreSQL: `54320`
 - MySQL: `33060`
 
@@ -162,10 +165,10 @@ npm run test:db:down
 
 The project includes two Docker Compose files:
 
-| File | Purpose | Ports | Data |
-|------|---------|-------|------|
-| `docker-compose.yml` | Development | 54322, 33306 | Persistent |
-| `docker-compose.test.yml` | Testing | 54320, 33060 | Temporary (tmpfs) |
+| File                      | Purpose     | Ports        | Data              |
+| ------------------------- | ----------- | ------------ | ----------------- |
+| `docker-compose.yml`      | Development | 54322, 33306 | Persistent        |
+| `docker-compose.test.yml` | Testing     | 54320, 33060 | Temporary (tmpfs) |
 
 ## Next Steps
 

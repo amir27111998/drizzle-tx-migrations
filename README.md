@@ -135,10 +135,10 @@ export const migrator = new Migrator({
 
 // Enable auto-generation by passing db, dialect, and schema files
 export const generator = new MigrationGenerator(
-  './migrations',          // migrations folder
-  db,                      // database instance for introspection
-  'postgresql',            // database dialect
-  ['./src/schema.ts']      // path(s) to your Drizzle schema files
+  './migrations', // migrations folder
+  db, // database instance for introspection
+  'postgresql', // database dialect
+  ['./src/schema.ts'] // path(s) to your Drizzle schema files
 );
 
 export default { migrator, generator };
@@ -227,16 +227,11 @@ You can still create manual migrations for data migrations or complex operations
 You can specify multiple schema files:
 
 ```typescript
-export const generator = new MigrationGenerator(
-  './migrations',
-  db,
-  'postgresql',
-  [
-    './src/schema/users.ts',
-    './src/schema/posts.ts',
-    './src/schema/comments.ts',
-  ]
-);
+export const generator = new MigrationGenerator('./migrations', db, 'postgresql', [
+  './src/schema/users.ts',
+  './src/schema/posts.ts',
+  './src/schema/comments.ts',
+]);
 ```
 
 ### Database Support
@@ -249,15 +244,15 @@ Auto-generation works with all supported databases:
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `generate <name>` | Generate new migration file |
-| `up` | Run all pending migrations |
-| `down` | Rollback last migration |
-| `down --to=<name>` | Rollback to specific migration |
-| `status` | Show migration status |
-| `check` | Validate & check pending (exits 1 if pending) |
-| `validate` | Validate migration files only |
+| Command            | Description                                   |
+| ------------------ | --------------------------------------------- |
+| `generate <name>`  | Generate new migration file                   |
+| `up`               | Run all pending migrations                    |
+| `down`             | Rollback last migration                       |
+| `down --to=<name>` | Rollback to specific migration                |
+| `status`           | Show migration status                         |
+| `check`            | Validate & check pending (exits 1 if pending) |
+| `validate`         | Validate migration files only                 |
 
 ### Examples
 
@@ -289,6 +284,7 @@ Use the `check` command in your CI pipeline:
 ```
 
 Exits with code 1 if:
+
 - Validation errors found
 - Pending migrations exist
 
@@ -300,7 +296,9 @@ Exits with code 1 if:
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
-const pool = new Pool({ /* config */ });
+const pool = new Pool({
+  /* config */
+});
 const db = drizzle(pool);
 
 export const migrator = new Migrator({
@@ -316,7 +314,9 @@ export const migrator = new Migrator({
 import { drizzle } from 'drizzle-orm/mysql2';
 import mysql from 'mysql2/promise';
 
-const connection = await mysql.createConnection({ /* config */ });
+const connection = await mysql.createConnection({
+  /* config */
+});
 const db = drizzle(connection);
 
 export const migrator = new Migrator({
@@ -394,9 +394,7 @@ export async function up({ db, sql }: MigrationContext) {
 import { users } from '../schema';
 
 export async function up({ db }: MigrationContext) {
-  await db.insert(users).values([
-    { email: 'admin@example.com', role: 'admin' },
-  ]);
+  await db.insert(users).values([{ email: 'admin@example.com', role: 'admin' }]);
 }
 ```
 
@@ -435,9 +433,9 @@ class Migrator {
 class MigrationGenerator {
   constructor(
     migrationsFolder: string,
-    db?: any,                    // Optional: for auto-generation
-    dialect?: DbDialect,         // Optional: for auto-generation
-    schemaFiles?: string[]       // Optional: paths to schema files
+    db?: any, // Optional: for auto-generation
+    dialect?: DbDialect, // Optional: for auto-generation
+    schemaFiles?: string[] // Optional: paths to schema files
   );
 
   generateMigration(name: string): Promise<string>;
@@ -445,12 +443,14 @@ class MigrationGenerator {
 ```
 
 **Parameters:**
+
 - `migrationsFolder` - Path to migrations folder
 - `db` - (Optional) Database instance for introspection
 - `dialect` - (Optional) Database dialect ('postgresql' | 'mysql' | 'sqlite')
 - `schemaFiles` - (Optional) Paths to Drizzle schema files
 
 **Behavior:**
+
 - With all parameters: Auto-generates migration from schema diff
 - Without optional parameters: Generates blank migration template
 - No schema changes: Falls back to blank template
@@ -460,16 +460,19 @@ class MigrationGenerator {
 This package uses **fully automated** publishing. When you push to `main`:
 
 **Option 1: Auto-increment (easiest)**
+
 - Just push to `main` without changing version
 - GitHub Actions auto-increments patch version and publishes
 
 **Option 2: Manual version bump**
+
 ```bash
 npm version minor  # or major/patch
 git push origin main
 ```
 
 **How It Works:**
+
 - `package.json version = latest tag` → Auto-increments patch
 - `package.json version > latest tag` → Uses your version
 - `package.json version < latest tag` → Fails with error

@@ -260,9 +260,7 @@ describe('MySQL Auto-Generation Integration Tests', () => {
               { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
               { name: 'email', type: 'varchar', notNull: true, primaryKey: false },
             ],
-            indexes: [
-              { name: 'idx_users_email', columns: ['email'], unique: true },
-            ],
+            indexes: [{ name: 'idx_users_email', columns: ['email'], unique: true }],
             foreignKeys: [],
             primaryKey: ['id'],
           },
@@ -408,11 +406,14 @@ export default { up, down };
     expect(result.success).toBe(true);
     expect(result.executed.length).toBe(1);
 
-    const [tablesResult] = await pool.query(`
+    const [tablesResult] = await pool.query(
+      `
       SELECT TABLE_NAME
       FROM information_schema.TABLES
       WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users'
-    `, [testDatabase]);
+    `,
+      [testDatabase]
+    );
 
     expect((tablesResult as any[]).length).toBe(1);
   });
@@ -444,21 +445,27 @@ export default { up, down };
 
     await migrator.runMigrations();
 
-    let [tablesResult] = await pool.query(`
+    let [tablesResult] = await pool.query(
+      `
       SELECT TABLE_NAME
       FROM information_schema.TABLES
       WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users'
-    `, [testDatabase]);
+    `,
+      [testDatabase]
+    );
     expect((tablesResult as any[]).length).toBe(1);
 
     const revertResult = await migrator.revertMigration(1);
     expect(revertResult.success).toBe(true);
 
-    [tablesResult] = await pool.query(`
+    [tablesResult] = await pool.query(
+      `
       SELECT TABLE_NAME
       FROM information_schema.TABLES
       WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users'
-    `, [testDatabase]);
+    `,
+      [testDatabase]
+    );
     expect((tablesResult as any[]).length).toBe(0);
   });
 
@@ -490,9 +497,7 @@ export default { up, down };
               { name: 'name', type: 'varchar', notNull: false, primaryKey: false },
               { name: 'age', type: 'integer', notNull: false, primaryKey: false },
             ],
-            indexes: [
-              { name: 'idx_email', columns: ['email'], unique: true },
-            ],
+            indexes: [{ name: 'idx_email', columns: ['email'], unique: true }],
             foreignKeys: [],
             primaryKey: ['id'],
           },
