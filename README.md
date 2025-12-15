@@ -4,8 +4,22 @@ TypeORM-like migrations for Drizzle ORM with full transaction support and indivi
 
 [![npm version](https://img.shields.io/npm/v/drizzle-tx-migrations.svg)](https://www.npmjs.com/package/drizzle-tx-migrations)
 [![CI](https://github.com/amir27111998/drizzle-tx-migrations/actions/workflows/ci.yml/badge.svg)](https://github.com/amir27111998/drizzle-tx-migrations/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-33%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-99%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/amir27111998/drizzle-tx-migrations/blob/main/LICENSE)
+
+## What's New in v1.0.3 🎉
+
+**TypeORM-Style Auto-Generation** is now available! The library now automatically generates migrations by comparing your current database state with your Drizzle schema definitions - just like TypeORM's migration generation.
+
+**New Features:**
+
+- 🔄 **Schema Introspection** - Automatically reads your database schema (PostgreSQL, MySQL, SQLite)
+- 📊 **Schema Diffing** - Detects differences between database and Drizzle entities
+- ⚡ **Auto-Generated SQL** - Creates both `up()` and `down()` migrations automatically
+- 🗂️ **Multi-File Schemas** - Supports Drizzle schemas spread across multiple files
+- ✨ **Dialect-Specific** - Generates optimal SQL for each database type
+
+[Jump to Auto-Generation Guide](#auto-generation-from-schema-changes)
 
 ## Features
 
@@ -495,6 +509,7 @@ MIT
 
 - Inspired by [TypeORM](https://typeorm.io/) migration system
 - Built for [Drizzle ORM](https://orm.drizzle.team/)
+- Auto-generation feature developed with [Claude Code](https://claude.com/claude-code)
 - Created with assistance from [Claude AI](https://claude.ai)
 
 ## Support
