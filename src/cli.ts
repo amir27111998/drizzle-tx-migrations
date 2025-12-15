@@ -54,7 +54,7 @@ async function main() {
           process.exit(1);
         }
 
-        const filePath = generator.generateMigration(name);
+        const filePath = await generator.generateMigration(name);
         console.log(`✓ Migration created: ${path.relative(process.cwd(), filePath)}`);
         break;
       }

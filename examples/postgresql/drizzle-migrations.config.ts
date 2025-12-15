@@ -24,6 +24,15 @@ export const migrator = new Migrator({
 });
 
 // Create generator instance
-export const generator = new MigrationGenerator('./migrations');
+// For basic usage (blank migrations):
+// export const generator = new MigrationGenerator('./migrations');
+
+// For auto-generation from schema diff:
+export const generator = new MigrationGenerator(
+  './migrations',
+  db, // Pass the database instance for introspection
+  'postgresql', // Specify the dialect
+  ['./src/schema.ts'] // Path(s) to your Drizzle schema files
+);
 
 export default { migrator, generator };

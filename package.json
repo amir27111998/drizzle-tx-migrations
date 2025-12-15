@@ -58,12 +58,14 @@
   "author": "amir27111998",
   "license": "MIT",
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
     "@types/jest": "^30.0.0",
     "@types/mysql": "^2.15.27",
     "@types/node": "^20.19.26",
     "@types/pg": "^8.16.0",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",
+    "better-sqlite3": "^11.0.0",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.0.1",
@@ -74,6 +76,7 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "drizzle-kit": "^0.30.0",
     "drizzle-orm": ">=0.29.0",
     "jiti": "^2.6.1"
   },
