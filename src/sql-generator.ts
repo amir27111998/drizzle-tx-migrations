@@ -1,6 +1,6 @@
 import type { DbDialect } from './types';
 import type { SchemaChange, TableChange } from './schema-differ';
-import type { TableColumn, TableIndex, ForeignKey } from './schema-introspector';
+import type { TableColumn } from './schema-introspector';
 
 export interface GeneratedSql {
   upStatements: string[];
@@ -141,26 +141,30 @@ export class SqlGenerator {
     switch (change.type) {
       case 'add_column': {
         const colDef = this.generateColumnDefinition(change.details.column);
-        const addSQL = this.dialect === 'sqlite'
-          ? `ALTER TABLE ${table} ADD COLUMN ${colDef};`
-          : `ALTER TABLE ${table} ADD COLUMN ${colDef};`;
+        const addSQL =
+          this.dialect === 'sqlite'
+            ? `ALTER TABLE ${table} ADD COLUMN ${colDef};`
+            : `ALTER TABLE ${table} ADD COLUMN ${colDef};`;
 
-        const dropSQL = this.dialect === 'sqlite'
-          ? `-- SQLite doesn't support DROP COLUMN natively, manual migration required`
-          : `ALTER TABLE ${table} DROP COLUMN ${this.quote(change.column)};`;
+        const dropSQL =
+          this.dialect === 'sqlite'
+            ? `-- SQLite doesn't support DROP COLUMN natively, manual migration required`
+            : `ALTER TABLE ${table} DROP COLUMN ${this.quote(change.column)};`;
 
         return { up: [addSQL], down: [dropSQL] };
       }
 
       case 'drop_column': {
         const colDef = this.generateColumnDefinition(change.details.column);
-        const dropSQL = this.dialect === 'sqlite'
-          ? `-- SQLite doesn't support DROP COLUMN natively, manual migration required`
-          : `ALTER TABLE ${table} DROP COLUMN ${this.quote(change.column)};`;
+        const dropSQL =
+          this.dialect === 'sqlite'
+            ? `-- SQLite doesn't support DROP COLUMN natively, manual migration required`
+            : `ALTER TABLE ${table} DROP COLUMN ${this.quote(change.column)};`;
 
-        const addSQL = this.dialect === 'sqlite'
-          ? `ALTER TABLE ${table} ADD COLUMN ${colDef};`
-          : `ALTER TABLE ${table} ADD COLUMN ${colDef};`;
+        const addSQL =
+          this.dialect === 'sqlite'
+            ? `ALTER TABLE ${table} ADD COLUMN ${colDef};`
+            : `ALTER TABLE ${table} ADD COLUMN ${colDef};`;
 
         return { up: [dropSQL], down: [addSQL] };
       }
@@ -286,8 +290,7 @@ export class SqlGenerator {
     const name = this.quote(column.name);
     const type = this.getColumnType(column);
     const notNull = column.notNull ? ' NOT NULL' : '';
-    const primaryKey =
-      column.primaryKey && !column.autoIncrement ? ' PRIMARY KEY' : '';
+    const primaryKey = column.primaryKey && !column.autoIncrement ? ' PRIMARY KEY' : '';
     const defaultValue = column.defaultValue ? ` DEFAULT ${column.defaultValue}` : '';
 
     let autoIncrement = '';

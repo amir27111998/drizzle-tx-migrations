@@ -1,6 +1,12 @@
 import * as path from 'path';
 import type { DbDialect } from './types';
-import type { DatabaseSchema, TableSchema, TableColumn, TableIndex, ForeignKey } from './schema-introspector';
+import type {
+  DatabaseSchema,
+  TableSchema,
+  TableColumn,
+  TableIndex,
+  ForeignKey,
+} from './schema-introspector';
 
 export class SchemaLoader {
   constructor(
@@ -29,7 +35,7 @@ export class SchemaLoader {
     }
 
     // Parse Drizzle table definitions
-    for (const [exportName, exportValue] of Object.entries(allImports)) {
+    for (const [_exportName, exportValue] of Object.entries(allImports)) {
       if (this.isDrizzleTable(exportValue)) {
         const tableSchema = this.parseTable(exportValue);
         if (tableSchema) {
@@ -63,10 +69,7 @@ export class SchemaLoader {
     try {
       // Extract table name
       const tableName =
-        table[Symbol.for('drizzle:Name')] ||
-        table._.name ||
-        table.dbName ||
-        table.name;
+        table[Symbol.for('drizzle:Name')] || table._.name || table.dbName || table.name;
 
       if (!tableName) return null;
 

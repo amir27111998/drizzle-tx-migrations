@@ -1,7 +1,20 @@
-import type { DatabaseSchema, TableSchema, TableColumn, TableIndex, ForeignKey } from './schema-introspector';
+import type {
+  DatabaseSchema,
+  TableSchema,
+  TableColumn,
+  TableIndex,
+  ForeignKey,
+} from './schema-introspector';
 
 export interface SchemaChange {
-  type: 'create_table' | 'drop_table' | 'alter_table' | 'create_index' | 'drop_index' | 'add_foreign_key' | 'drop_foreign_key';
+  type:
+    | 'create_table'
+    | 'drop_table'
+    | 'alter_table'
+    | 'create_index'
+    | 'drop_index'
+    | 'add_foreign_key'
+    | 'drop_foreign_key';
   table: string;
   details?: any;
 }

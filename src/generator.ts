@@ -121,7 +121,7 @@ export default { up, down };
         case 'drop_table':
           summary.push(` * - Drop table: ${change.table}`);
           break;
-        case 'alter_table':
+        case 'alter_table': {
           const tableChanges = change.details.changes;
           for (const tc of tableChanges) {
             if (tc.type === 'add_column') {
@@ -133,6 +133,7 @@ export default { up, down };
             }
           }
           break;
+        }
         case 'create_index':
           summary.push(` * - Create index: ${change.details.index.name} on ${change.table}`);
           break;

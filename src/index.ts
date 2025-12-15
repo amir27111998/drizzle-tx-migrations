@@ -15,5 +15,11 @@ export type {
   DbDialect,
 } from './types';
 export type { ValidationResult, CheckResult } from './validator';
-export type { DatabaseSchema, TableSchema, TableColumn, TableIndex, ForeignKey } from './schema-introspector';
+export type {
+  DatabaseSchema,
+  TableSchema,
+  TableColumn,
+  TableIndex,
+  ForeignKey,
+} from './schema-introspector';
 export type { SchemaChange } from './schema-differ';
