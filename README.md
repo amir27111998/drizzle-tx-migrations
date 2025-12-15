@@ -9,6 +9,7 @@ TypeORM-like migrations for Drizzle ORM with full transaction support and indivi
 
 ## Features
 
+- ✅ **Auto-Generation** - Automatically generate migrations from schema changes (like TypeORM)
 - ✅ **Transaction Support** - All migrations run in transactions with automatic rollback
 - ✅ **TypeORM-like Interface** - Familiar `up()` and `down()` methods
 - ✅ **Individual Rollback** - Revert specific migrations, not just batches
@@ -102,6 +103,149 @@ export default { up, down };
 ```bash
 npx drizzle-tx-migrations up
 ```
+
+## Auto-Generation from Schema Changes
+
+🎉 **New!** Automatically generate migrations by comparing your Drizzle schema with your database state - just like TypeORM!
+
+### Setup for Auto-Generation
+
+Update your `drizzle-migrations.config.ts` to pass schema information to the generator:
+
+```typescript
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+import { Migrator, MigrationGenerator } from 'drizzle-tx-migrations';
+
+const pool = new Pool({
+  host: 'localhost',
+  port: 5432,
+  user: 'postgres',
+  password: 'postgres',
+  database: 'mydb',
+});
+
+const db = drizzle(pool);
+
+export const migrator = new Migrator({
+  db,
+  dialect: 'postgresql',
+  config: { migrationsFolder: './migrations' },
+});
+
+// Enable auto-generation by passing db, dialect, and schema files
+export const generator = new MigrationGenerator(
+  './migrations',          // migrations folder
+  db,                      // database instance for introspection
+  'postgresql',            // database dialect
+  ['./src/schema.ts']      // path(s) to your Drizzle schema files
+);
+
+export default { migrator, generator };
+```
+
+### How It Works
+
+1. **Define your schema** in Drizzle:
+
+```typescript
+// src/schema.ts
+import { pgTable, serial, varchar, timestamp } from 'drizzle-orm/pg-core';
+
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
+  email: varchar('email', { length: 255 }).notNull().unique(),
+  name: varchar('name', { length: 255 }),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+```
+
+2. **Generate migration** - it will auto-detect changes:
+
+```bash
+npx drizzle-tx-migrations generate add_users_table
+```
+
+3. **Review the generated migration**:
+
+```typescript
+import { type MigrationContext } from 'drizzle-tx-migrations';
+
+/**
+ * Migration: add_users_table
+ *
+ * This migration was auto-generated from schema changes.
+ * Please review the changes carefully before running the migration.
+ *
+ * Changes detected:
+ * - Create table: users
+ */
+
+export async function up({ db, sql }: MigrationContext): Promise<void> {
+  await db.execute(sql`CREATE TABLE "users" (
+  "id" SERIAL PRIMARY KEY,
+  "email" VARCHAR(255) NOT NULL,
+  "name" VARCHAR(255),
+  "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);`);
+}
+
+export async function down({ db, sql }: MigrationContext): Promise<void> {
+  await db.execute(sql`DROP TABLE IF EXISTS "users";`);
+}
+
+export default { up, down };
+```
+
+4. **Run the migration**:
+
+```bash
+npx drizzle-tx-migrations up
+```
+
+### What Gets Auto-Generated
+
+The auto-generation system detects and creates SQL for:
+
+- ✅ **Table Creation** - New tables from your schema
+- ✅ **Table Drops** - Tables removed from schema
+- ✅ **Column Changes** - Add, drop, or modify columns
+- ✅ **Index Management** - Create or drop indexes
+- ✅ **Foreign Keys** - Add or remove foreign key constraints
+- ✅ **Down Migrations** - Automatically generates reverse operations
+
+### Fallback Behavior
+
+- **No schema files configured?** → Generates blank migration template
+- **No schema changes detected?** → Generates blank migration template
+- **Error during generation?** → Falls back to blank migration template
+
+You can still create manual migrations for data migrations or complex operations!
+
+### Multi-Schema Files
+
+You can specify multiple schema files:
+
+```typescript
+export const generator = new MigrationGenerator(
+  './migrations',
+  db,
+  'postgresql',
+  [
+    './src/schema/users.ts',
+    './src/schema/posts.ts',
+    './src/schema/comments.ts',
+  ]
+);
+```
+
+### Database Support
+
+Auto-generation works with all supported databases:
+
+- **PostgreSQL** - Full support for all features
+- **MySQL** - Full support for all features
+- **SQLite** - Partial support (some ALTER operations generate comments for manual review)
 
 ## Commands
 
@@ -289,10 +433,27 @@ class Migrator {
 
 ```typescript
 class MigrationGenerator {
-  constructor(migrationsFolder: string);
-  generateMigration(name: string): string;
+  constructor(
+    migrationsFolder: string,
+    db?: any,                    // Optional: for auto-generation
+    dialect?: DbDialect,         // Optional: for auto-generation
+    schemaFiles?: string[]       // Optional: paths to schema files
+  );
+
+  generateMigration(name: string): Promise<string>;
 }
 ```
+
+**Parameters:**
+- `migrationsFolder` - Path to migrations folder
+- `db` - (Optional) Database instance for introspection
+- `dialect` - (Optional) Database dialect ('postgresql' | 'mysql' | 'sqlite')
+- `schemaFiles` - (Optional) Paths to Drizzle schema files
+
+**Behavior:**
+- With all parameters: Auto-generates migration from schema diff
+- Without optional parameters: Generates blank migration template
+- No schema changes: Falls back to blank template
 
 ## Publishing & Releases
 
