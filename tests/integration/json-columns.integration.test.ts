@@ -100,19 +100,14 @@ export const users = pgTable('users', {
 
     it('should insert and query JSON data', async () => {
       // Insert data with JSON
-      await pool.query(
-        `INSERT INTO users (email, settings, metadata) VALUES ($1, $2, $3)`,
-        [
-          'test@example.com',
-          JSON.stringify({ theme: 'dark', language: 'en' }),
-          JSON.stringify({ lastLogin: '2025-01-01', roles: ['admin', 'user'] }),
-        ]
-      );
+      await pool.query(`INSERT INTO users (email, settings, metadata) VALUES ($1, $2, $3)`, [
+        'test@example.com',
+        JSON.stringify({ theme: 'dark', language: 'en' }),
+        JSON.stringify({ lastLogin: '2025-01-01', roles: ['admin', 'user'] }),
+      ]);
 
       // Query and verify
-      const result = await pool.query(`SELECT * FROM users WHERE email = $1`, [
-        'test@example.com',
-      ]);
+      const result = await pool.query(`SELECT * FROM users WHERE email = $1`, ['test@example.com']);
 
       expect(result.rows.length).toBe(1);
       const user = result.rows[0];
@@ -253,14 +248,11 @@ export const products = mysqlTable('products', {
 
     it('should insert and query JSON data', async () => {
       // Insert data with JSON
-      await connection.query(
-        `INSERT INTO products (name, attributes, tags) VALUES (?, ?, ?)`,
-        [
-          'Widget',
-          JSON.stringify({ color: 'blue', size: 'large', weight: 100 }),
-          JSON.stringify(['electronics', 'gadgets', 'new']),
-        ]
-      );
+      await connection.query(`INSERT INTO products (name, attributes, tags) VALUES (?, ?, ?)`, [
+        'Widget',
+        JSON.stringify({ color: 'blue', size: 'large', weight: 100 }),
+        JSON.stringify(['electronics', 'gadgets', 'new']),
+      ]);
 
       // Query and verify
       const [rows] = await connection.query<mysql.RowDataPacket[]>(

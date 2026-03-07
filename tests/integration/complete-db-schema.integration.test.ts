@@ -436,9 +436,13 @@ export const comments = pgTable('comments', {
 
       // Verify migration names
       const migrationNames = migrations.map((m: any) => m.name);
-      expect(migrationNames.some((name: string) => name.includes('create_initial_schema'))).toBe(true);
+      expect(migrationNames.some((name: string) => name.includes('create_initial_schema'))).toBe(
+        true
+      );
       expect(migrationNames.some((name: string) => name.includes('add_comments_table'))).toBe(true);
-      expect(migrationNames.some((name: string) => name.includes('add_user_profile_fields'))).toBe(true);
+      expect(migrationNames.some((name: string) => name.includes('add_user_profile_fields'))).toBe(
+        true
+      );
 
       // Verify all migrations have timestamps
       migrations.forEach((migration: any) => {
@@ -461,9 +465,7 @@ export const comments = pgTable('comments', {
 
   describe('Complete Rollback', () => {
     it('should rollback all migrations', async () => {
-      const initialMigrationsResult = await pool.query(
-        `SELECT * FROM __drizzle_migrations`
-      );
+      const initialMigrationsResult = await pool.query(`SELECT * FROM __drizzle_migrations`);
       const migrationCount = initialMigrationsResult.rows.length;
 
       // Rollback all migrations one by one
@@ -481,9 +483,7 @@ export const comments = pgTable('comments', {
       expect(tableNames).toEqual(['__drizzle_migrations']);
 
       // Verify no migrations in tracking table
-      const remainingMigrationsResult = await pool.query(
-        `SELECT * FROM __drizzle_migrations`
-      );
+      const remainingMigrationsResult = await pool.query(`SELECT * FROM __drizzle_migrations`);
       expect(remainingMigrationsResult.rows.length).toBe(0);
     });
 
@@ -499,9 +499,7 @@ export const comments = pgTable('comments', {
       expect(tableNames).toContain('users');
       expect(tableNames).toContain('posts');
 
-      const migrationsResult = await pool.query(
-        `SELECT * FROM __drizzle_migrations`
-      );
+      const migrationsResult = await pool.query(`SELECT * FROM __drizzle_migrations`);
       expect(migrationsResult.rows.length).toBeGreaterThanOrEqual(6);
     });
   });

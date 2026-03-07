@@ -92,7 +92,10 @@ export class SchemaLoader {
           // Recursively find all .ts files in directory
           const dirFiles = this.findSchemaFilesInDirectory(absolutePath);
           expandedFiles.push(...dirFiles);
-        } else if (stats.isFile() && (absolutePath.endsWith('.ts') || absolutePath.endsWith('.js'))) {
+        } else if (
+          stats.isFile() &&
+          (absolutePath.endsWith('.ts') || absolutePath.endsWith('.js'))
+        ) {
           // Single file
           expandedFiles.push(absolutePath);
         }
@@ -169,8 +172,7 @@ export class SchemaLoader {
       value[Symbol.for('drizzle:Name')] !== undefined ||
       (typeof value._ === 'object' && typeof value._.name === 'string');
 
-    const hasTableColumns =
-      (typeof value._ === 'object' && typeof value._.columns === 'object');
+    const hasTableColumns = typeof value._ === 'object' && typeof value._.columns === 'object';
 
     return hasTableName && hasTableColumns;
   }

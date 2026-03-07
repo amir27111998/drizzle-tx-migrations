@@ -46,9 +46,7 @@ describe('Complete DB Schema Integration Tests (MySQL)', () => {
     generator = new MigrationGenerator(migrationsDir, db, 'mysql', [modelsDir]);
 
     // Clean up any existing tables
-    const [tables] = await connection.query<mysql.RowDataPacket[]>(
-      `SHOW TABLES`
-    );
+    const [tables] = await connection.query<mysql.RowDataPacket[]>(`SHOW TABLES`);
     for (const row of tables) {
       const tableName = Object.values(row)[0];
       await connection.query(`DROP TABLE IF EXISTS \`${tableName}\``);
@@ -131,9 +129,8 @@ export const products = mysqlTable('products', {
       expect(migrations[0].name).toContain('create_initial_schema');
 
       // Verify columns
-      const [userColumns] = await connection.query<mysql.RowDataPacket[]>(
-        `SHOW COLUMNS FROM users`
-      );
+      const [userColumns] =
+        await connection.query<mysql.RowDataPacket[]>(`SHOW COLUMNS FROM users`);
       const userColNames = userColumns.map((col) => col.Field);
       expect(userColNames).toContain('id');
       expect(userColNames).toContain('email');
@@ -141,9 +138,7 @@ export const products = mysqlTable('products', {
       expect(userColNames).toContain('is_active');
 
       // Verify indexes
-      const [indexes] = await connection.query<mysql.RowDataPacket[]>(
-        `SHOW INDEX FROM products`
-      );
+      const [indexes] = await connection.query<mysql.RowDataPacket[]>(`SHOW INDEX FROM products`);
       const indexNames = indexes.map((idx) => idx.Key_name);
       expect(indexNames).toContain('idx_products_name');
       expect(indexNames).toContain('idx_products_created_by');
@@ -181,9 +176,7 @@ export const reviews = mysqlTable('reviews', {
 
       await migrator.runMigrations();
 
-      const [tables] = await connection.query<mysql.RowDataPacket[]>(
-        `SHOW TABLES LIKE 'reviews'`
-      );
+      const [tables] = await connection.query<mysql.RowDataPacket[]>(`SHOW TABLES LIKE 'reviews'`);
       expect(tables.length).toBe(1);
 
       // Verify migration count
@@ -226,9 +219,7 @@ export const users = mysqlTable('users', {
 
       await migrator.runMigrations();
 
-      const [columns] = await connection.query<mysql.RowDataPacket[]>(
-        `SHOW COLUMNS FROM users`
-      );
+      const [columns] = await connection.query<mysql.RowDataPacket[]>(`SHOW COLUMNS FROM users`);
       const colNames = columns.map((col) => col.Field);
       expect(colNames).toContain('bio');
       expect(colNames).toContain('phone_number');
@@ -268,9 +259,7 @@ export const products = mysqlTable('products', {
 
       await migrator.runMigrations();
 
-      const [indexes] = await connection.query<mysql.RowDataPacket[]>(
-        `SHOW INDEX FROM products`
-      );
+      const [indexes] = await connection.query<mysql.RowDataPacket[]>(`SHOW INDEX FROM products`);
       const indexNames = indexes.map((idx) => idx.Key_name);
       expect(indexNames).toContain('idx_products_price');
       expect(indexNames).toContain('idx_products_created_at');
@@ -292,9 +281,7 @@ export const products = mysqlTable('products', {
       expect(migrationsAfter.length).toBe(countBefore - 1);
 
       // Verify indexes were removed
-      const [indexes] = await connection.query<mysql.RowDataPacket[]>(
-        `SHOW INDEX FROM products`
-      );
+      const [indexes] = await connection.query<mysql.RowDataPacket[]>(`SHOW INDEX FROM products`);
       const indexNames = indexes.map((idx) => idx.Key_name);
       expect(indexNames).not.toContain('idx_products_price');
       expect(indexNames).not.toContain('idx_products_created_at');
@@ -303,9 +290,7 @@ export const products = mysqlTable('products', {
     it('should re-apply the migration', async () => {
       await migrator.runMigrations();
 
-      const [indexes] = await connection.query<mysql.RowDataPacket[]>(
-        `SHOW INDEX FROM products`
-      );
+      const [indexes] = await connection.query<mysql.RowDataPacket[]>(`SHOW INDEX FROM products`);
       const indexNames = indexes.map((idx) => idx.Key_name);
       expect(indexNames).toContain('idx_products_price');
       expect(indexNames).toContain('idx_products_created_at');
@@ -340,9 +325,7 @@ export const users = mysqlTable('users', {
 
       await migrator.runMigrations();
 
-      const [columns] = await connection.query<mysql.RowDataPacket[]>(
-        `SHOW COLUMNS FROM users`
-      );
+      const [columns] = await connection.query<mysql.RowDataPacket[]>(`SHOW COLUMNS FROM users`);
       const colNames = columns.map((col) => col.Field);
       expect(colNames).not.toContain('bio');
       expect(colNames).toContain('phone_number');
@@ -378,9 +361,7 @@ export const reviews = mysqlTable('reviews', {
       await migrator.runMigrations();
 
       // Verify index was dropped
-      const [indexes] = await connection.query<mysql.RowDataPacket[]>(
-        `SHOW INDEX FROM reviews`
-      );
+      const [indexes] = await connection.query<mysql.RowDataPacket[]>(`SHOW INDEX FROM reviews`);
       const indexNames = indexes.map((idx) => idx.Key_name);
       expect(indexNames).not.toContain('idx_reviews_user');
     });
@@ -397,9 +378,7 @@ export const reviews = mysqlTable('reviews', {
 
       await migrator.runMigrations();
 
-      const [tables] = await connection.query<mysql.RowDataPacket[]>(
-        `SHOW TABLES LIKE 'reviews'`
-      );
+      const [tables] = await connection.query<mysql.RowDataPacket[]>(`SHOW TABLES LIKE 'reviews'`);
       expect(tables.length).toBe(0);
     });
   });
@@ -414,9 +393,13 @@ export const reviews = mysqlTable('reviews', {
 
       // Verify migration names
       const migrationNames = migrations.map((m) => m.name);
-      expect(migrationNames.some((name: string) => name.includes('create_initial_schema'))).toBe(true);
+      expect(migrationNames.some((name: string) => name.includes('create_initial_schema'))).toBe(
+        true
+      );
       expect(migrationNames.some((name: string) => name.includes('add_reviews_table'))).toBe(true);
-      expect(migrationNames.some((name: string) => name.includes('add_user_profile_fields'))).toBe(true);
+      expect(migrationNames.some((name: string) => name.includes('add_user_profile_fields'))).toBe(
+        true
+      );
 
       // Verify all migrations have timestamps
       migrations.forEach((migration) => {

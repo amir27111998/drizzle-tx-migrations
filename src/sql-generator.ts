@@ -326,7 +326,11 @@ export class SqlGenerator {
     }
 
     // Handle function calls like 'fn()', 'now()', etc.
-    if (defaultValue === 'fn()' || defaultValue.includes('now()') || defaultValue.includes('CURRENT_TIMESTAMP')) {
+    if (
+      defaultValue === 'fn()' ||
+      defaultValue.includes('now()') ||
+      defaultValue.includes('CURRENT_TIMESTAMP')
+    ) {
       if (this.dialect === 'postgresql') {
         return ' DEFAULT CURRENT_TIMESTAMP';
       } else if (this.dialect === 'mysql') {

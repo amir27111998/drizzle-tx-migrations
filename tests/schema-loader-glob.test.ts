@@ -239,10 +239,7 @@ describe('SchemaLoader - Glob and Directory Unit Tests', () => {
     });
 
     it('should support multiple patterns', async () => {
-      const patterns = [
-        path.join(testDir, '**/*.model.ts'),
-        path.join(testDir, '**/*.entity.ts'),
-      ];
+      const patterns = [path.join(testDir, '**/*.model.ts'), path.join(testDir, '**/*.entity.ts')];
       const loader = new SchemaLoader(patterns, 'postgresql');
       const schema = await loader.loadSchema();
 

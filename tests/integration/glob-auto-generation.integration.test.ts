@@ -235,16 +235,11 @@ describe('Glob Pattern Auto-Generation Integration Tests', () => {
       );
 
       // Mix directory, glob, and file
-      const generator = new MigrationGenerator(
-        migrationsDir,
-        db,
-        'postgresql',
-        [
-          modelsDir, // directory
-          path.join(entitiesDir, '*.ts'), // glob
-          path.join(testSchemaDir, 'root.ts'), // file
-        ]
-      );
+      const generator = new MigrationGenerator(migrationsDir, db, 'postgresql', [
+        modelsDir, // directory
+        path.join(entitiesDir, '*.ts'), // glob
+        path.join(testSchemaDir, 'root.ts'), // file
+      ]);
 
       const migrationPath = await generator.generateMigration('create_mixed');
       const content = fs.readFileSync(migrationPath, 'utf-8');
@@ -481,10 +476,7 @@ describe('Glob Pattern Auto-Generation Integration Tests', () => {
       `
       );
 
-      const patterns = [
-        path.join(modelsDir, '*.model.ts'),
-        path.join(entitiesDir, '*.entity.ts'),
-      ];
+      const patterns = [path.join(modelsDir, '*.model.ts'), path.join(entitiesDir, '*.entity.ts')];
 
       const generator = new MigrationGenerator(migrationsDir, db, 'mysql', patterns);
       const migrationPath = await generator.generateMigration('create_multi');
@@ -565,12 +557,9 @@ describe('Glob Pattern Auto-Generation Integration Tests', () => {
     });
 
     it('should handle non-existent glob pattern gracefully', async () => {
-      const generator = new MigrationGenerator(
-        migrationsDir,
-        db,
-        'postgresql',
-        ['/non/existent/**/*.ts']
-      );
+      const generator = new MigrationGenerator(migrationsDir, db, 'postgresql', [
+        '/non/existent/**/*.ts',
+      ]);
 
       const migrationPath = await generator.generateMigration('non_existent');
       const content = fs.readFileSync(migrationPath, 'utf-8');
