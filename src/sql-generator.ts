@@ -291,7 +291,7 @@ export class SqlGenerator {
     const type = this.getColumnType(column);
     const notNull = column.notNull ? ' NOT NULL' : '';
     const primaryKey = column.primaryKey && !column.autoIncrement ? ' PRIMARY KEY' : '';
-    const defaultValue = column.defaultValue ? ` DEFAULT ${column.defaultValue}` : '';
+    const defaultValue = this.formatDefaultValue(column.defaultValue);
 
     let autoIncrement = '';
     if (column.autoIncrement) {
@@ -306,6 +306,64 @@ export class SqlGenerator {
     }
 
     return `${name} ${type}${notNull}${primaryKey}${autoIncrement}${defaultValue}`;
+  }
+
+  private formatDefaultValue(defaultValue: string | undefined): string {
+    if (!defaultValue) {
+      return '';
+    }
+
+    // Handle [object Object] - this means the value wasn't properly extracted
+    // Treat it as a function call (CURRENT_TIMESTAMP)
+    if (defaultValue.includes('[object Object]')) {
+      if (this.dialect === 'postgresql') {
+        return ' DEFAULT CURRENT_TIMESTAMP';
+      } else if (this.dialect === 'mysql') {
+        return ' DEFAULT CURRENT_TIMESTAMP';
+      } else {
+        return ' DEFAULT CURRENT_TIMESTAMP';
+      }
+    }
+
+    // Handle function calls like 'fn()', 'now()', etc.
+    if (defaultValue === 'fn()' || defaultValue.includes('now()') || defaultValue.includes('CURRENT_TIMESTAMP')) {
+      if (this.dialect === 'postgresql') {
+        return ' DEFAULT CURRENT_TIMESTAMP';
+      } else if (this.dialect === 'mysql') {
+        return ' DEFAULT CURRENT_TIMESTAMP';
+      } else {
+        return ' DEFAULT CURRENT_TIMESTAMP';
+      }
+    }
+
+    // Handle boolean values
+    if (defaultValue === 'true' || defaultValue === 'false') {
+      if (this.dialect === 'postgresql') {
+        return ` DEFAULT ${defaultValue}`;
+      } else if (this.dialect === 'mysql') {
+        return ` DEFAULT ${defaultValue === 'true' ? '1' : '0'}`;
+      } else {
+        return ` DEFAULT ${defaultValue === 'true' ? '1' : '0'}`;
+      }
+    }
+
+    // Handle NULL
+    if (defaultValue.toLowerCase() === 'null') {
+      return ' DEFAULT NULL';
+    }
+
+    // Handle numeric values
+    if (/^-?\d+(\.\d+)?$/.test(defaultValue)) {
+      return ` DEFAULT ${defaultValue}`;
+    }
+
+    // Handle strings - quote them
+    if (!defaultValue.startsWith("'") && !defaultValue.startsWith('"')) {
+      return ` DEFAULT '${defaultValue.replace(/'/g, "''")}'`;
+    }
+
+    // Already quoted or special SQL syntax
+    return ` DEFAULT ${defaultValue}`;
   }
 
   private getColumnType(column: TableColumn): string {

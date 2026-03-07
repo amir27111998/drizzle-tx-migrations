@@ -13,6 +13,10 @@ export type {
   MigrationMeta,
   MigratorOptions,
   DbDialect,
+  TransactionMode,
+  RunMigrationsOptions,
+  RevertMigrationsOptions,
+  GeneratorOptions,
 } from './types';
 export type { ValidationResult, CheckResult } from './validator';
 export type {

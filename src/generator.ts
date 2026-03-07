@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import type { DbDialect } from './types';
+import type { DbDialect, GeneratorOptions } from './types';
 import { SchemaIntrospector } from './schema-introspector';
 import { SchemaLoader } from './schema-loader';
 import { SchemaDiffer } from './schema-differ';
@@ -14,25 +14,30 @@ export class MigrationGenerator {
     private schemaFiles?: string[]
   ) {}
 
-  async generateMigration(name: string): Promise<string> {
+  async generateMigration(name: string, options: GeneratorOptions = {}): Promise<string> {
+    const { outputFormat = 'ts' } = options;
     const timestamp = Date.now();
     const fileName = `${timestamp}_${this.sanitizeName(name)}`;
-    const fullPath = path.join(this.migrationsFolder, `${fileName}.ts`);
+    const extension = outputFormat === 'js' ? 'js' : 'ts';
+    const fullPath = path.join(this.migrationsFolder, `${fileName}.${extension}`);
 
     this.ensureMigrationsFolder();
 
     // Try to auto-generate migration from schema diff
-    const content = await this.generateMigrationContent(name);
+    const content = await this.generateMigrationContent(name, outputFormat);
     fs.writeFileSync(fullPath, content);
 
     return fullPath;
   }
 
-  private async generateMigrationContent(name: string): Promise<string> {
+  private async generateMigrationContent(
+    name: string,
+    outputFormat: 'ts' | 'js' = 'ts'
+  ): Promise<string> {
     // Check if we can auto-generate
     if (!this.db || !this.dialect || !this.schemaFiles || this.schemaFiles.length === 0) {
       console.log('No schema configuration provided, generating blank migration template');
-      return this.getMigrationTemplate(name);
+      return this.getMigrationTemplate(name, outputFormat);
     }
 
     try {
@@ -54,7 +59,7 @@ export class MigrationGenerator {
 
       if (changes.length === 0) {
         console.log('No schema changes detected, generating blank migration template');
-        return this.getMigrationTemplate(name);
+        return this.getMigrationTemplate(name, outputFormat);
       }
 
       console.log(`Detected ${changes.length} schema changes`);
@@ -64,11 +69,17 @@ export class MigrationGenerator {
       const { upStatements, downStatements } = sqlGenerator.generate(changes);
 
       // Create migration content with generated SQL
-      return this.getMigrationTemplateWithSQL(name, upStatements, downStatements, changes);
+      return this.getMigrationTemplateWithSQL(
+        name,
+        upStatements,
+        downStatements,
+        changes,
+        outputFormat
+      );
     } catch (error) {
       console.warn('Failed to auto-generate migration:', error);
       console.log('Falling back to blank migration template');
-      return this.getMigrationTemplate(name);
+      return this.getMigrationTemplate(name, outputFormat);
     }
   }
 
@@ -76,12 +87,46 @@ export class MigrationGenerator {
     name: string,
     upStatements: string[],
     downStatements: string[],
-    changes: any[]
+    changes: any[],
+    outputFormat: 'ts' | 'js' = 'ts'
   ): string {
     const changesSummary = this.generateChangesSummary(changes);
 
-    const upSQL = upStatements.map((stmt) => `  await db.execute(sql\`${stmt}\`);`).join('\n');
-    const downSQL = downStatements.map((stmt) => `  await db.execute(sql\`${stmt}\`);`).join('\n');
+    // Escape backticks and dollar signs in SQL to avoid breaking template literals
+    const escapeSql = (sqlStr: string) => sqlStr.replace(/`/g, '\\`').replace(/\$/g, '\\$');
+
+    const upSQL = upStatements
+      .map((stmt) => `  await db.execute(sql\`${escapeSql(stmt)}\`);`)
+      .join('\n');
+    const downSQL = downStatements
+      .map((stmt) => `  await db.execute(sql\`${escapeSql(stmt)}\`);`)
+      .join('\n');
+
+    if (outputFormat === 'js') {
+      return `/**
+ * Migration: ${name}
+ *
+ * This migration was auto-generated from schema changes.
+ * Please review the changes carefully before running the migration.
+ *
+ * Changes detected:
+${changesSummary}
+ *
+ * This migration runs in a transaction. If any operation fails,
+ * all changes will be automatically rolled back.
+ */
+
+async function up({ db, sql }) {
+${upSQL || '  // No changes'}
+}
+
+async function down({ db, sql }) {
+${downSQL || '  // No changes'}
+}
+
+module.exports = { up, down };
+`;
+    }
 
     return `import { type MigrationContext } from 'drizzle-tx-migrations';
 
@@ -169,7 +214,38 @@ export default { up, down };
     }
   }
 
-  private getMigrationTemplate(name: string): string {
+  private getMigrationTemplate(name: string, outputFormat: 'ts' | 'js' = 'ts'): string {
+    if (outputFormat === 'js') {
+      return `/**
+ * Migration: ${name}
+ *
+ * This migration runs in a transaction. If any operation fails,
+ * all changes will be automatically rolled back.
+ */
+
+async function up({ db, sql }) {
+  // Write your migration logic here
+  // Example:
+  // await db.execute(sql\`
+  //   CREATE TABLE users (
+  //     id SERIAL PRIMARY KEY,
+  //     name VARCHAR(255) NOT NULL,
+  //     email VARCHAR(255) UNIQUE NOT NULL,
+  //     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  //   )
+  // \`);
+}
+
+async function down({ db, sql }) {
+  // Write your rollback logic here
+  // Example:
+  // await db.execute(sql\`DROP TABLE IF EXISTS users\`);
+}
+
+module.exports = { up, down };
+`;
+    }
+
     return `import { type MigrationContext } from 'drizzle-tx-migrations';
 
 /**

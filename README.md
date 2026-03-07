@@ -4,19 +4,30 @@ TypeORM-like migrations for Drizzle ORM with full transaction support and indivi
 
 [![npm version](https://img.shields.io/npm/v/drizzle-tx-migrations.svg)](https://www.npmjs.com/package/drizzle-tx-migrations)
 [![CI](https://github.com/amir27111998/drizzle-tx-migrations/actions/workflows/ci.yml/badge.svg)](https://github.com/amir27111998/drizzle-tx-migrations/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-99%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-107%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/amir27111998/drizzle-tx-migrations/blob/main/LICENSE)
 
-## What's New in v1.0.3 🎉
+## What's New in v1.1.0 🎉
 
-**TypeORM-Style Auto-Generation** is now available! The library now automatically generates migrations by comparing your current database state with your Drizzle schema definitions - just like TypeORM's migration generation.
+**Full TypeORM Feature Parity!** This release brings all the advanced migration features from TypeORM, making the migration experience complete.
 
 **New Features:**
+
+- 🎭 **Fake Migrations** (`--fake`) - Mark migrations as run without executing SQL
+- 🔄 **Transaction Modes** (`--transaction=all|each|none`) - Full transaction control
+- ⚙️ **Per-Migration Transaction** - Override transaction mode per migration file
+- 🔄 **Schema Commands** - `schema:sync`, `schema:log`, `schema:drop` for direct schema management
+- 📋 **Query Command** - Execute raw SQL queries directly
+- 👁️ **Dry Run Mode** (`--dry-run`) - Preview migrations without executing
+- 📄 **JavaScript Output** (`-o`) - Generate JS migration files instead of TypeScript
+
+**Previous Features (v1.0.3):**
 
 - 🔄 **Schema Introspection** - Automatically reads your database schema (PostgreSQL, MySQL, SQLite)
 - 📊 **Schema Diffing** - Detects differences between database and Drizzle entities
 - ⚡ **Auto-Generated SQL** - Creates both `up()` and `down()` migrations automatically
-- 🗂️ **Multi-File Schemas** - Supports Drizzle schemas spread across multiple files
+- 🗂️ **Multi-File Schemas** - Supports individual files, directories, and glob patterns (`**/*.ts`)
+- 📁 **Directory Support** - Point to a folder and auto-discover all schema files
 - ✨ **Dialect-Specific** - Generates optimal SQL for each database type
 
 [Jump to Auto-Generation Guide](#auto-generation-from-schema-changes)
@@ -236,15 +247,39 @@ The auto-generation system detects and creates SQL for:
 
 You can still create manual migrations for data migrations or complex operations!
 
-### Multi-Schema Files
+### Multi-Schema Files & Directories
 
-You can specify multiple schema files:
+You can specify schema paths in multiple ways:
 
+**Individual files:**
 ```typescript
 export const generator = new MigrationGenerator('./migrations', db, 'postgresql', [
   './src/schema/users.ts',
   './src/schema/posts.ts',
-  './src/schema/comments.ts',
+]);
+```
+
+**Directory path** (automatically finds all `.ts` files):
+```typescript
+export const generator = new MigrationGenerator('./migrations', db, 'postgresql', [
+  './src/schema', // Loads all .ts files in schema directory and subdirectories
+]);
+```
+
+**Glob patterns:**
+```typescript
+export const generator = new MigrationGenerator('./migrations', db, 'postgresql', [
+  './src/schema/**/*.ts', // All .ts files in schema and subdirectories
+  './src/models/*.ts',     // All .ts files in models directory only
+]);
+```
+
+**Mixed approaches:**
+```typescript
+export const generator = new MigrationGenerator('./migrations', db, 'postgresql', [
+  './src/schema',           // Directory
+  './src/models/**/*.ts',   // Glob pattern
+  './src/legacy/old.ts',    // Individual file
 ]);
 ```
 
@@ -258,15 +293,50 @@ Auto-generation works with all supported databases:
 
 ## Commands
 
+### Migration Commands
+
 | Command            | Description                                   |
 | ------------------ | --------------------------------------------- |
 | `generate <name>`  | Generate new migration file                   |
 | `up`               | Run all pending migrations                    |
 | `down`             | Rollback last migration                       |
+| `down --count=<n>` | Rollback last N migrations                    |
 | `down --to=<name>` | Rollback to specific migration                |
 | `status`           | Show migration status                         |
 | `check`            | Validate & check pending (exits 1 if pending) |
 | `validate`         | Validate migration files only                 |
+| `list`             | List all migration files                      |
+
+### Schema Commands
+
+| Command       | Description                                            |
+| ------------- | ------------------------------------------------------ |
+| `schema:sync` | Synchronize database directly with Drizzle schema      |
+| `schema:log`  | Show SQL that schema:sync would execute                |
+| `schema:drop` | Drop all tables from database (requires `--force`)     |
+
+### Query Commands
+
+| Command          | Description                          |
+| ---------------- | ------------------------------------ |
+| `query "<sql>"`  | Execute raw SQL and display results  |
+
+### Options
+
+| Option                | Commands        | Description                                         |
+| --------------------- | --------------- | --------------------------------------------------- |
+| `--dry-run`           | up, down, sync  | Preview what would be done without executing        |
+| `--fake` / `-f`       | up, down        | Mark migrations as run without executing SQL        |
+| `--transaction=<mode>`| up, down        | Transaction mode: `all`, `each` (default), `none`   |
+| `-o` / `--output-js`  | generate        | Generate JavaScript file instead of TypeScript      |
+| `--force`             | schema:drop     | Required for destructive operations                 |
+| `--no-fail-pending`   | check           | Don't fail if there are pending migrations          |
+
+### Transaction Modes
+
+- **`all`** - Wrap ALL migrations in a single transaction (all-or-nothing)
+- **`each`** - Wrap EACH migration in its own transaction (default, TypeORM-like)
+- **`none`** - Run migrations WITHOUT transaction wrapping
 
 ### Examples
 
@@ -274,17 +344,69 @@ Auto-generation works with all supported databases:
 # Generate migration
 npx drizzle-tx-migrations generate add_user_role
 
+# Generate JavaScript migration
+npx drizzle-tx-migrations generate add_user_role -o
+
 # Run all pending
 npx drizzle-tx-migrations up
+
+# Preview what would run
+npx drizzle-tx-migrations up --dry-run
+
+# Mark as run without executing (fake)
+npx drizzle-tx-migrations up --fake
+
+# Run with single transaction for all migrations
+npx drizzle-tx-migrations up --transaction=all
 
 # Rollback last migration
 npx drizzle-tx-migrations down
 
+# Rollback last 3 migrations
+npx drizzle-tx-migrations down --count=3
+
 # Rollback to specific migration
 npx drizzle-tx-migrations down --to=1234567890_create_users
 
+# Remove from tracking without running down() (fake revert)
+npx drizzle-tx-migrations down --fake
+
 # Check status (for CI/CD)
 npx drizzle-tx-migrations check
+
+# Execute raw SQL query
+npx drizzle-tx-migrations query "SELECT * FROM users LIMIT 10"
+
+# Preview schema sync
+npx drizzle-tx-migrations schema:log
+
+# Sync schema directly (bypasses migrations)
+npx drizzle-tx-migrations schema:sync
+
+# Drop all tables
+npx drizzle-tx-migrations schema:drop --force
+```
+
+### Per-Migration Transaction Control
+
+You can override the transaction mode for individual migrations by exporting a `transaction` constant:
+
+```typescript
+import { type MigrationContext } from 'drizzle-tx-migrations';
+
+// Disable transaction for this migration (useful for operations that can't run in transactions)
+export const transaction = false;
+
+export async function up({ db, sql }: MigrationContext): Promise<void> {
+  // This migration runs WITHOUT a transaction
+  await db.execute(sql`CREATE INDEX CONCURRENTLY idx_users_email ON users(email)`);
+}
+
+export async function down({ db, sql }: MigrationContext): Promise<void> {
+  await db.execute(sql`DROP INDEX IF EXISTS idx_users_email`);
+}
+
+export default { up, down };
 ```
 
 ## CI/CD Integration
@@ -365,13 +487,29 @@ import { migrator } from './drizzle-migrations.config';
 const result = await migrator.runMigrations();
 console.log(result.success ? 'Success!' : 'Failed!');
 
+// Run with options
+await migrator.runMigrations({
+  fake: true,           // Mark as run without executing
+  dryRun: true,         // Preview only
+  transactionMode: 'all' // Wrap all in single transaction
+});
+
 // Get status
 const status = await migrator.getStatus();
 console.log('Pending:', status.pending);
 console.log('Executed:', status.executed);
 
 // Rollback
-await migrator.rollbackMigration();
+await migrator.revertMigration();
+
+// Rollback with options
+await migrator.revertMigration(3, {  // Revert 3 migrations
+  fake: true,           // Remove from tracking only
+  transactionMode: 'none'
+});
+
+// Revert to specific migration
+await migrator.revertTo('1234567890_create_users');
 ```
 
 ## Migration Patterns
@@ -432,12 +570,39 @@ class Migrator {
   constructor(options: {
     db: any;
     dialect: 'postgresql' | 'mysql' | 'sqlite';
-    config: { migrationsFolder: string };
+    config: {
+      migrationsFolder: string;
+      migrationsTable?: string;  // Custom table name (default: __drizzle_migrations)
+      schemaFiles?: string[];    // For schema:sync commands
+    };
   });
 
-  runMigrations(): Promise<{ success: boolean; error?: string }>;
-  rollbackMigration(options?: { to?: string }): Promise<{ success: boolean }>;
-  getStatus(): Promise<{ pending: Migration[]; executed: Migration[] }>;
+  // Run all pending migrations
+  runMigrations(options?: {
+    fake?: boolean;              // Mark as run without executing
+    dryRun?: boolean;            // Preview only
+    transactionMode?: 'all' | 'each' | 'none';
+  }): Promise<{ success: boolean; executed: string[] }>;
+
+  // Revert migrations
+  revertMigration(count?: number, options?: {
+    fake?: boolean;
+    dryRun?: boolean;
+    transactionMode?: 'all' | 'each' | 'none';
+  }): Promise<{ success: boolean; reverted: string[] }>;
+
+  // Revert to a specific migration
+  revertTo(targetName: string, options?: {
+    fake?: boolean;
+    dryRun?: boolean;
+    transactionMode?: 'all' | 'each' | 'none';
+  }): Promise<{ success: boolean; reverted: string[] }>;
+
+  // Get migration status
+  getStatus(): Promise<{
+    pending: string[];
+    executed: MigrationMeta[]
+  }>;
 }
 ```
 
@@ -447,12 +612,16 @@ class Migrator {
 class MigrationGenerator {
   constructor(
     migrationsFolder: string,
-    db?: any, // Optional: for auto-generation
-    dialect?: DbDialect, // Optional: for auto-generation
-    schemaFiles?: string[] // Optional: paths to schema files
+    db?: any,                    // Optional: for auto-generation
+    dialect?: DbDialect,         // Optional: for auto-generation
+    schemaFiles?: string[]       // Optional: paths to schema files
   );
 
-  generateMigration(name: string): Promise<string>;
+  generateMigration(name: string, options?: {
+    outputFormat?: 'ts' | 'js';  // Default: 'ts'
+  }): Promise<string>;
+
+  listMigrations(): string[];
 }
 ```
 
@@ -468,6 +637,28 @@ class MigrationGenerator {
 - With all parameters: Auto-generates migration from schema diff
 - Without optional parameters: Generates blank migration template
 - No schema changes: Falls back to blank template
+
+### Types
+
+```typescript
+type TransactionMode = 'all' | 'each' | 'none';
+
+interface RunMigrationsOptions {
+  fake?: boolean;                    // Mark as run without executing
+  transactionMode?: TransactionMode; // Default: 'each'
+  dryRun?: boolean;                  // Preview only
+}
+
+interface RevertMigrationsOptions {
+  fake?: boolean;                    // Remove from tracking only
+  transactionMode?: TransactionMode; // Default: 'each'
+  dryRun?: boolean;                  // Preview only
+}
+
+interface GeneratorOptions {
+  outputFormat?: 'ts' | 'js';        // Default: 'ts'
+}
+```
 
 ## Publishing & Releases
 
