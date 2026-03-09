@@ -7,11 +7,17 @@ TypeORM-like migrations for Drizzle ORM with full transaction support and indivi
 [![Tests](https://img.shields.io/badge/tests-107%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/amir27111998/drizzle-tx-migrations/blob/main/LICENSE)
 
-## What's New in v1.1.0 🎉
+## What's New in v1.2.0 🎉
 
-**Full TypeORM Feature Parity!** This release brings all the advanced migration features from TypeORM, making the migration experience complete.
+**Drizzle-Kit Import Support!** This release adds the ability to import existing drizzle-kit migrations.
 
 **New Features:**
+
+- 📥 **Import Command** - Convert drizzle-kit SQL migrations to TypeScript/JavaScript with up/down functions
+- 🔄 **Auto-Generated Down Migrations** - Reverse operations for CREATE TABLE, ADD CONSTRAINT, CREATE INDEX
+- 📋 **Mark as Executed** - Option to mark imported migrations as already run
+
+**Previous Features (v1.1.0):**
 
 - 🎭 **Fake Migrations** (`--fake`) - Mark migrations as run without executing SQL
 - 🔄 **Transaction Modes** (`--transaction=all|each|none`) - Full transaction control
@@ -307,6 +313,12 @@ Auto-generation works with all supported databases:
 | `validate`         | Validate migration files only                 |
 | `list`             | List all migration files                      |
 
+### Import Commands
+
+| Command           | Description                                                         |
+| ----------------- | ------------------------------------------------------------------- |
+| `import [folder]` | Import drizzle-kit migrations to TypeScript/JavaScript format       |
+
 ### Schema Commands
 
 | Command       | Description                                            |
@@ -331,6 +343,8 @@ Auto-generation works with all supported databases:
 | `-o` / `--output-js`  | generate        | Generate JavaScript file instead of TypeScript      |
 | `--force`             | schema:drop     | Required for destructive operations                 |
 | `--no-fail-pending`   | check           | Don't fail if there are pending migrations          |
+| `--from=<folder>`     | import          | Source folder for drizzle-kit migrations            |
+| `--mark-executed`/`-e`| import          | Mark imported migrations as already executed        |
 
 ### Transaction Modes
 
@@ -385,6 +399,15 @@ npx drizzle-tx-migrations schema:sync
 
 # Drop all tables
 npx drizzle-tx-migrations schema:drop --force
+
+# Import drizzle-kit migrations
+npx drizzle-tx-migrations import ./drizzle
+
+# Import as JavaScript
+npx drizzle-tx-migrations import ./drizzle -o
+
+# Import and mark as already executed
+npx drizzle-tx-migrations import ./drizzle --mark-executed
 ```
 
 ### Per-Migration Transaction Control
@@ -407,6 +430,77 @@ export async function down({ db, sql }: MigrationContext): Promise<void> {
 }
 
 export default { up, down };
+```
+
+## Importing from Drizzle-Kit
+
+Already have migrations created with `drizzle-kit`? You can import them to `drizzle-tx-migrations` format.
+
+### How It Works
+
+Drizzle-kit generates SQL migrations in a folder structure like:
+```
+drizzle/
+├── 0000_initial.sql
+├── 0001_add_posts.sql
+└── meta/
+    └── _journal.json
+```
+
+The import command converts these to TypeScript migrations with `up()` and `down()` functions.
+
+### Import Steps
+
+1. **Import your migrations:**
+```bash
+npx drizzle-tx-migrations import ./drizzle
+```
+
+2. **Review the generated migrations** in your migrations folder:
+```typescript
+// migrations/1773036597956_initial.ts
+import { type MigrationContext } from 'drizzle-tx-migrations';
+
+export async function up({ db, sql }: MigrationContext): Promise<void> {
+  await db.execute(sql`CREATE TABLE \`users\` (...)`);
+  await db.execute(sql`CREATE TABLE \`posts\` (...)`);
+}
+
+export async function down({ db, sql }: MigrationContext): Promise<void> {
+  await db.execute(sql`DROP TABLE IF EXISTS \`posts\``);
+  await db.execute(sql`DROP TABLE IF EXISTS \`users\``);
+}
+
+export default { up, down };
+```
+
+3. **If migrations were already applied** to your database, mark them as executed:
+```bash
+npx drizzle-tx-migrations import ./drizzle --mark-executed
+# or
+npx drizzle-tx-migrations up --fake
+```
+
+### Auto-Generated Down Migrations
+
+The importer automatically generates reverse statements for:
+- **CREATE TABLE** → `DROP TABLE IF EXISTS`
+- **ALTER TABLE ADD CONSTRAINT** → `ALTER TABLE DROP CONSTRAINT/FOREIGN KEY`
+- **CREATE INDEX** → `DROP INDEX IF EXISTS`
+
+For complex migrations, you may need to review and adjust the `down()` function.
+
+### Import Options
+
+```bash
+# Import from custom folder
+npx drizzle-tx-migrations import ./my-drizzle-folder
+
+# Generate JavaScript instead of TypeScript
+npx drizzle-tx-migrations import ./drizzle -o
+
+# Mark as already executed (if migrations already ran)
+npx drizzle-tx-migrations import ./drizzle --mark-executed
 ```
 
 ## CI/CD Integration

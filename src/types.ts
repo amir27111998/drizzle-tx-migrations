@@ -108,3 +108,39 @@ export interface GeneratorOptions {
    */
   outputFormat?: 'ts' | 'js';
 }
+
+export interface ImportOptions {
+  /**
+   * Output format: 'ts' for TypeScript, 'js' for JavaScript
+   * @default 'ts'
+   */
+  outputFormat?: 'ts' | 'js';
+  /**
+   * If true, mark imported migrations as already executed in the database.
+   * Use this when the drizzle-kit migrations have already been applied.
+   * @default false
+   */
+  markAsExecuted?: boolean;
+}
+
+export interface ImportResult {
+  /**
+   * Successfully imported migrations
+   */
+  imported: Array<{
+    originalName: string;
+    newName: string;
+    path: string;
+  }>;
+  /**
+   * Migrations that were skipped (e.g., already exist)
+   */
+  skipped: Array<{
+    name: string;
+    reason: string;
+  }>;
+  /**
+   * Errors encountered during import
+   */
+  errors: string[];
+}

@@ -313,6 +313,62 @@ async function main() {
         break;
       }
 
+      case 'import': {
+        // Import drizzle-kit migrations
+        const drizzleFolder =
+          args[1] || args.find((arg) => arg.startsWith('--from='))?.split('=')[1] || './drizzle';
+        const outputJS = args.includes('-o') || args.includes('--output-js');
+        const markExecuted = args.includes('--mark-executed') || args.includes('-e');
+
+        console.log(`Importing migrations from drizzle-kit folder: ${drizzleFolder}\n`);
+
+        const result = await generator.importFromDrizzleKit(drizzleFolder, {
+          outputFormat: outputJS ? 'js' : 'ts',
+          markAsExecuted: markExecuted,
+        });
+
+        console.log('');
+
+        if (result.imported.length > 0) {
+          console.log(`✓ Successfully imported ${result.imported.length} migration(s).`);
+        }
+
+        if (result.skipped.length > 0) {
+          console.log(`⏭ Skipped ${result.skipped.length} migration(s):`);
+          result.skipped.forEach((s: { name: string; reason: string }) => {
+            console.log(`  - ${s.name}: ${s.reason}`);
+          });
+        }
+
+        if (result.errors.length > 0) {
+          console.log(`\n⚠ Errors (${result.errors.length}):`);
+          result.errors.forEach((e: string) => {
+            console.log(`  - ${e}`);
+          });
+        }
+
+        if (result.imported.length > 0 && markExecuted) {
+          console.log('\nMarking imported migrations as executed...');
+          for (const imp of result.imported) {
+            try {
+              // Load the migration and mark as executed using fake
+              await migrator.runMigrations({ fake: true });
+            } catch (err: any) {
+              console.error(`Failed to mark ${imp.newName} as executed: ${err.message}`);
+            }
+          }
+          console.log('✓ Done.');
+        }
+
+        if (result.imported.length > 0) {
+          console.log('\n📝 Note: Please review the down() functions in imported migrations.');
+          console.log(
+            '   Drizzle-kit does not generate down migrations, so they may need manual implementation.'
+          );
+        }
+        break;
+      }
+
       case 'schema:sync': {
         const dryRun = args.includes('--dry-run');
         await handleSchemaSync(config, dryRun);
@@ -561,6 +617,10 @@ Migration Commands:
   validate                  Validate migration files only (no DB check)
   list                      List all migration files
 
+Import Commands:
+  import [folder]           Import migrations from drizzle-kit format
+                            Converts SQL migrations to TypeScript/JavaScript with up/down functions
+
 Schema Commands:
   schema:sync               Synchronize database schema with Drizzle schema (bypasses migrations)
   schema:log                Show SQL that would be executed by schema:sync
@@ -579,6 +639,8 @@ Options:
   --fake, -f                Mark migrations as run without executing (up/down)
   --transaction=<mode>      Transaction mode: all, each (default), or none
   --force                   Required for destructive operations like schema:drop
+  --from=<folder>           Source folder for import command (default: ./drizzle)
+  --mark-executed, -e       Mark imported migrations as already executed
 
 Transaction Modes:
   all     Wrap ALL migrations in a single transaction (all-or-nothing)
@@ -606,6 +668,9 @@ Examples:
   drizzle-tx-migrations check --no-fail-pending             # Only validate
   drizzle-tx-migrations validate                            # Validate files without DB
   drizzle-tx-migrations query "SELECT * FROM users LIMIT 10"
+  drizzle-tx-migrations import ./drizzle                    # Import drizzle-kit migrations
+  drizzle-tx-migrations import --from=./drizzle -o          # Import as JavaScript
+  drizzle-tx-migrations import ./drizzle --mark-executed    # Import and mark as run
   drizzle-tx-migrations schema:log                          # Preview schema sync SQL
   drizzle-tx-migrations schema:sync --dry-run               # Preview schema sync
   drizzle-tx-migrations schema:sync                         # Apply schema changes directly

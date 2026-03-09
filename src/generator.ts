@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import type { DbDialect, GeneratorOptions } from './types';
+import { glob } from 'glob';
+import type { DbDialect, GeneratorOptions, ImportOptions, ImportResult } from './types';
 import { SchemaIntrospector } from './schema-introspector';
 import { SchemaLoader } from './schema-loader';
 import { SchemaDiffer } from './schema-differ';
@@ -287,5 +288,282 @@ export default { up, down };
       .readdirSync(this.migrationsFolder)
       .filter((f) => f.endsWith('.ts') || f.endsWith('.js'))
       .sort();
+  }
+
+  /**
+   * Import migrations from drizzle-kit format to drizzle-tx-migrations format.
+   *
+   * Drizzle-kit migrations are stored as:
+   * - drizzle/XXXX_migration_name.sql (SQL files with --> statement-breakpoint separators)
+   * - drizzle/meta/_journal.json (migration history)
+   *
+   * This method converts them to TypeScript/JavaScript migration files with up/down functions.
+   */
+  async importFromDrizzleKit(
+    drizzleKitFolder: string,
+    options: ImportOptions = {}
+  ): Promise<ImportResult> {
+    const { outputFormat = 'ts', markAsExecuted = false } = options;
+    const result: ImportResult = {
+      imported: [],
+      skipped: [],
+      errors: [],
+    };
+
+    // Validate drizzle-kit folder
+    if (!fs.existsSync(drizzleKitFolder)) {
+      throw new Error(`Drizzle-kit folder not found: ${drizzleKitFolder}`);
+    }
+
+    const journalPath = path.join(drizzleKitFolder, 'meta', '_journal.json');
+    if (!fs.existsSync(journalPath)) {
+      throw new Error(
+        `Drizzle-kit journal not found: ${journalPath}. Is this a valid drizzle-kit migrations folder?`
+      );
+    }
+
+    // Read journal to get migration order
+    const journal = JSON.parse(fs.readFileSync(journalPath, 'utf-8'));
+    const entries: Array<{ idx: number; tag: string; when: number }> = journal.entries || [];
+
+    if (entries.length === 0) {
+      console.log('No migrations found in drizzle-kit journal.');
+      return result;
+    }
+
+    console.log(`Found ${entries.length} drizzle-kit migration(s) to import.\n`);
+
+    this.ensureMigrationsFolder();
+
+    // Process each migration
+    for (const entry of entries) {
+      const sqlFile = path.join(drizzleKitFolder, `${entry.tag}.sql`);
+
+      if (!fs.existsSync(sqlFile)) {
+        result.errors.push(`SQL file not found: ${sqlFile}`);
+        continue;
+      }
+
+      try {
+        const migrationName = this.extractMigrationName(entry.tag);
+        const timestamp = entry.when;
+        const fileName = `${timestamp}_${migrationName}`;
+        const extension = outputFormat === 'js' ? 'js' : 'ts';
+        const outputPath = path.join(this.migrationsFolder, `${fileName}.${extension}`);
+
+        // Check if already exists
+        const existingFiles = await glob(`*_${migrationName}.{ts,js}`, {
+          cwd: this.migrationsFolder,
+        });
+
+        if (existingFiles.length > 0) {
+          result.skipped.push({ name: entry.tag, reason: 'already exists' });
+          continue;
+        }
+
+        // Read SQL content
+        const sqlContent = fs.readFileSync(sqlFile, 'utf-8');
+        const statements = this.parseDrizzleKitSQL(sqlContent);
+
+        // Generate migration file
+        const content = this.generateImportedMigration(migrationName, statements, outputFormat);
+        fs.writeFileSync(outputPath, content);
+
+        result.imported.push({
+          originalName: entry.tag,
+          newName: fileName,
+          path: outputPath,
+        });
+
+        console.log(`✓ Imported: ${entry.tag} -> ${fileName}.${extension}`);
+      } catch (error: any) {
+        result.errors.push(`Failed to import ${entry.tag}: ${error.message}`);
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Parse drizzle-kit SQL file content.
+   * Drizzle-kit uses "--> statement-breakpoint" as separator.
+   */
+  private parseDrizzleKitSQL(content: string): string[] {
+    // Split by statement breakpoint marker
+    const statements = content
+      .split(/-->\s*statement-breakpoint/i)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0 && !s.startsWith('--'));
+
+    return statements;
+  }
+
+  /**
+   * Extract a clean migration name from drizzle-kit tag.
+   * Example: "0000_tired_nitro" -> "tired_nitro"
+   */
+  private extractMigrationName(tag: string): string {
+    // Remove leading index (e.g., "0000_") if present
+    const withoutIndex = tag.replace(/^\d+_/, '');
+    return this.sanitizeName(withoutIndex);
+  }
+
+  /**
+   * Generate migration file content from imported SQL statements.
+   * Note: Down migrations cannot be auto-generated from drizzle-kit,
+   * so we provide placeholder comments.
+   */
+  private generateImportedMigration(
+    name: string,
+    statements: string[],
+    outputFormat: 'ts' | 'js' = 'ts'
+  ): string {
+    // Escape backticks and dollar signs
+    const escapeSql = (sqlStr: string) => sqlStr.replace(/`/g, '\\`').replace(/\$/g, '\\$');
+
+    const upSQL = statements
+      .map((stmt) => `  await db.execute(sql\`${escapeSql(stmt)}\`);`)
+      .join('\n');
+
+    // Try to generate reverse statements for simple DDL
+    const downStatements = this.generateReverseStatements(statements);
+    const downSQL =
+      downStatements.length > 0
+        ? downStatements.map((stmt) => `  await db.execute(sql\`${escapeSql(stmt)}\`);`).join('\n')
+        : '  // TODO: Implement down migration\n  // This migration was imported from drizzle-kit and requires manual down implementation.';
+
+    if (outputFormat === 'js') {
+      return `/**
+ * Migration: ${name}
+ *
+ * This migration was imported from drizzle-kit.
+ * Please review the down() function and implement rollback logic if needed.
+ */
+
+async function up({ db, sql }) {
+${upSQL}
+}
+
+async function down({ db, sql }) {
+${downSQL}
+}
+
+module.exports = { up, down };
+`;
+    }
+
+    return `import { type MigrationContext } from 'drizzle-tx-migrations';
+
+/**
+ * Migration: ${name}
+ *
+ * This migration was imported from drizzle-kit.
+ * Please review the down() function and implement rollback logic if needed.
+ */
+
+export async function up({ db, sql }: MigrationContext): Promise<void> {
+${upSQL}
+}
+
+export async function down({ db, sql }: MigrationContext): Promise<void> {
+${downSQL}
+}
+
+export default { up, down };
+`;
+  }
+
+  /**
+   * Attempt to generate reverse statements for common DDL operations.
+   * This is a best-effort approach for simple cases.
+   *
+   * The order of operations for down migration is critical:
+   * 1. Drop foreign keys first (they may depend on indexes)
+   * 2. Drop indexes
+   * 3. Drop columns
+   * 4. Drop tables last
+   */
+  private generateReverseStatements(statements: string[]): string[] {
+    const dropForeignKeys: string[] = [];
+    const dropIndexes: string[] = [];
+    const dropColumns: string[] = [];
+    const dropTables: string[] = [];
+
+    // Process in reverse order to get correct dependency order within each category
+    for (let i = statements.length - 1; i >= 0; i--) {
+      const stmt = statements[i].trim();
+      const upperStmt = stmt.toUpperCase();
+
+      // CREATE TABLE -> DROP TABLE
+      if (upperStmt.startsWith('CREATE TABLE')) {
+        const match = stmt.match(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"]?(\w+)[`"]?/i);
+        if (match) {
+          const tableName = match[1];
+          const quoted = this.dialect === 'mysql' ? `\`${tableName}\`` : `"${tableName}"`;
+          dropTables.push(`DROP TABLE IF EXISTS ${quoted}`);
+        }
+      }
+      // ALTER TABLE ADD COLUMN -> ALTER TABLE DROP COLUMN
+      else if (
+        upperStmt.includes('ADD COLUMN') ||
+        upperStmt.match(/ALTER\s+TABLE.*ADD\s+[`"]\w+[`"]/)
+      ) {
+        const tableMatch = stmt.match(/ALTER\s+TABLE\s+[`"]?(\w+)[`"]?/i);
+        const columnMatch = stmt.match(/ADD\s+(?:COLUMN\s+)?[`"]?(\w+)[`"]?/i);
+        if (tableMatch && columnMatch) {
+          const tableName = tableMatch[1];
+          const columnName = columnMatch[1];
+          const tableQuoted = this.dialect === 'mysql' ? `\`${tableName}\`` : `"${tableName}"`;
+          const colQuoted = this.dialect === 'mysql' ? `\`${columnName}\`` : `"${columnName}"`;
+          dropColumns.push(`ALTER TABLE ${tableQuoted} DROP COLUMN ${colQuoted}`);
+        }
+      }
+      // ALTER TABLE ADD CONSTRAINT/FOREIGN KEY -> ALTER TABLE DROP CONSTRAINT/FOREIGN KEY
+      else if (upperStmt.includes('ADD CONSTRAINT') || upperStmt.includes('ADD FOREIGN KEY')) {
+        const tableMatch = stmt.match(/ALTER\s+TABLE\s+[`"]?(\w+)[`"]?/i);
+        const constraintMatch = stmt.match(/ADD\s+CONSTRAINT\s+[`"]?(\w+)[`"]?/i);
+        if (tableMatch && constraintMatch) {
+          const tableName = tableMatch[1];
+          const constraintName = constraintMatch[1];
+          const tableQuoted = this.dialect === 'mysql' ? `\`${tableName}\`` : `"${tableName}"`;
+          const constQuoted =
+            this.dialect === 'mysql' ? `\`${constraintName}\`` : `"${constraintName}"`;
+          if (this.dialect === 'mysql') {
+            // MySQL uses DROP FOREIGN KEY for FK constraints
+            if (upperStmt.includes('FOREIGN KEY')) {
+              dropForeignKeys.push(`ALTER TABLE ${tableQuoted} DROP FOREIGN KEY ${constQuoted}`);
+            } else {
+              dropIndexes.push(`ALTER TABLE ${tableQuoted} DROP INDEX ${constQuoted}`);
+            }
+          } else {
+            dropForeignKeys.push(`ALTER TABLE ${tableQuoted} DROP CONSTRAINT ${constQuoted}`);
+          }
+        }
+      }
+      // CREATE INDEX -> DROP INDEX
+      else if (
+        upperStmt.startsWith('CREATE INDEX') ||
+        upperStmt.startsWith('CREATE UNIQUE INDEX')
+      ) {
+        // Match: CREATE INDEX idx_name ON table_name (columns)
+        const indexMatch = stmt.match(
+          /CREATE\s+(?:UNIQUE\s+)?INDEX\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"]?(\w+)[`"]?\s+ON\s+[`"]?(\w+)[`"]?/i
+        );
+        if (indexMatch) {
+          const indexName = indexMatch[1];
+          const tableName = indexMatch[2];
+          if (this.dialect === 'mysql') {
+            // MySQL: DROP INDEX index_name ON table_name
+            dropIndexes.push(`DROP INDEX \`${indexName}\` ON \`${tableName}\``);
+          } else {
+            // PostgreSQL/SQLite: DROP INDEX IF EXISTS index_name
+            dropIndexes.push(`DROP INDEX IF EXISTS "${indexName}"`);
+          }
+        }
+      }
+    }
+
+    // Return in correct order: foreign keys -> indexes -> columns -> tables
+    return [...dropForeignKeys, ...dropIndexes, ...dropColumns, ...dropTables];
   }
 }

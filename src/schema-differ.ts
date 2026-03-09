@@ -226,12 +226,17 @@ export class SchemaDiffer {
   ): SchemaChange[] {
     const changes: SchemaChange[] = [];
 
-    const currentFks = new Map(currentTable.foreignKeys.map((fk) => [fk.name, fk]));
-    const desiredFks = new Map(desiredTable.foreignKeys.map((fk) => [fk.name, fk]));
+    // Create a key for FK matching based on relationship, not name
+    // This handles cases where FK names differ between introspector and schema loader
+    const getFkKey = (fk: ForeignKey) =>
+      `${fk.column}:${fk.referencedTable}:${fk.referencedColumn}`;
 
-    // Find foreign keys to drop
-    for (const [fkName, fkDef] of currentFks) {
-      if (!desiredFks.has(fkName)) {
+    const currentFks = new Map(currentTable.foreignKeys.map((fk) => [getFkKey(fk), fk]));
+    const desiredFks = new Map(desiredTable.foreignKeys.map((fk) => [getFkKey(fk), fk]));
+
+    // Find foreign keys to drop (exist in current but not in desired)
+    for (const [fkKey, fkDef] of currentFks) {
+      if (!desiredFks.has(fkKey)) {
         changes.push({
           type: 'drop_foreign_key',
           table: tableName,
@@ -240,24 +245,31 @@ export class SchemaDiffer {
       }
     }
 
-    // Find foreign keys to create
-    for (const [fkName, fkDef] of desiredFks) {
-      const currentFk = currentFks.get(fkName);
-      if (!currentFk || this.foreignKeysAreDifferent(currentFk, fkDef)) {
-        // If FK exists but is different, drop it first
-        if (currentFk) {
-          changes.push({
-            type: 'drop_foreign_key',
-            table: tableName,
-            details: { foreignKey: currentFk },
-          });
-        }
+    // Find foreign keys to create (exist in desired but not in current)
+    for (const [fkKey, desiredFk] of desiredFks) {
+      const currentFk = currentFks.get(fkKey);
+      if (!currentFk) {
+        // FK doesn't exist, create it
         changes.push({
           type: 'add_foreign_key',
           table: tableName,
-          details: { foreignKey: fkDef },
+          details: { foreignKey: desiredFk },
+        });
+      } else if (this.foreignKeysAreDifferent(currentFk, desiredFk)) {
+        // FK exists but has different ON DELETE/UPDATE actions
+        // Drop the current FK (using its actual DB name) and create the new one
+        changes.push({
+          type: 'drop_foreign_key',
+          table: tableName,
+          details: { foreignKey: currentFk },
+        });
+        changes.push({
+          type: 'add_foreign_key',
+          table: tableName,
+          details: { foreignKey: desiredFk },
         });
       }
+      // If FK exists and is the same, no changes needed
     }
 
     return changes;

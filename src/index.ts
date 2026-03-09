@@ -17,6 +17,8 @@ export type {
   RunMigrationsOptions,
   RevertMigrationsOptions,
   GeneratorOptions,
+  ImportOptions,
+  ImportResult,
 } from './types';
 export type { ValidationResult, CheckResult } from './validator';
 export type {
