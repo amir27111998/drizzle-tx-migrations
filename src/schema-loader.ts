@@ -11,7 +11,9 @@ import type {
   TableColumn,
   TableIndex,
   ForeignKey,
-} from './schema-introspector';
+} from './types/schema-types';
+import { normalizeDrizzleType } from './utils/type-normalizer';
+import { toAbsolutePath, isSchemaFile } from './utils/path-resolver';
 
 export class SchemaLoader {
   constructor(
@@ -41,9 +43,7 @@ export class SchemaLoader {
     const allImports: Record<string, unknown> = {};
 
     for (const schemaFile of expandedFiles) {
-      const absolutePath = path.isAbsolute(schemaFile)
-        ? schemaFile
-        : path.resolve(process.cwd(), schemaFile);
+      const absolutePath = toAbsolutePath(schemaFile);
 
       try {
         const imported = jiti(absolutePath);
@@ -76,9 +76,7 @@ export class SchemaLoader {
     const expandedFiles: string[] = [];
 
     for (const schemaPath of schemaPaths) {
-      const absolutePath = path.isAbsolute(schemaPath)
-        ? schemaPath
-        : path.resolve(process.cwd(), schemaPath);
+      const absolutePath = toAbsolutePath(schemaPath);
 
       // Check if path contains glob patterns
       if (schemaPath.includes('*')) {
@@ -128,7 +126,7 @@ export class SchemaLoader {
         files.push(...this.findSchemaFilesInDirectory(fullPath));
       } else if (entry.isFile()) {
         // Include .ts and .js files
-        if (fullPath.endsWith('.ts') || fullPath.endsWith('.js')) {
+        if (isSchemaFile(fullPath)) {
           files.push(fullPath);
         }
       }
@@ -320,7 +318,7 @@ export class SchemaLoader {
 
       return {
         name: columnName,
-        type: this.normalizeSQLType(sqlType),
+        type: normalizeDrizzleType(sqlType),
         notNull,
         defaultValue,
         primaryKey,
@@ -407,141 +405,5 @@ export class SchemaLoader {
       console.warn(`Failed to parse foreign key:`, error);
       return null;
     }
-  }
-
-  /**
-   * Normalize SQL type from Drizzle's getSQLType() to our internal format
-   * Preserves length/precision information for types like varchar(36)
-   */
-  private normalizeSQLType(sqlType: string): string {
-    // Normalize common type aliases
-    const typeMap: Record<string, string> = {
-      // PostgreSQL serial types (auto-increment)
-      serial: 'integer',
-      serial4: 'integer',
-      serial8: 'bigint',
-      bigserial: 'bigint',
-      smallserial: 'smallint',
-      // String types
-      varchar: 'varchar',
-      'character varying': 'varchar',
-      char: 'char',
-      character: 'char',
-      text: 'text',
-      tinytext: 'tinytext',
-      mediumtext: 'mediumtext',
-      longtext: 'longtext',
-      // Numeric types
-      integer: 'integer',
-      int: 'integer',
-      int4: 'integer',
-      int8: 'bigint',
-      bigint: 'bigint',
-      smallint: 'smallint',
-      int2: 'smallint',
-      tinyint: 'tinyint',
-      mediumint: 'mediumint',
-      real: 'real',
-      float: 'float',
-      float4: 'real',
-      float8: 'double',
-      double: 'double',
-      'double precision': 'double',
-      decimal: 'decimal',
-      numeric: 'numeric',
-      money: 'money',
-      // Boolean
-      boolean: 'boolean',
-      bool: 'boolean',
-      // Date/Time types
-      timestamp: 'timestamp',
-      'timestamp without time zone': 'timestamp',
-      timestamptz: 'timestamptz',
-      'timestamp with time zone': 'timestamptz',
-      datetime: 'datetime',
-      date: 'date',
-      time: 'time',
-      'time without time zone': 'time',
-      timetz: 'timetz',
-      'time with time zone': 'timetz',
-      interval: 'interval',
-      year: 'year',
-      // JSON types
-      json: 'json',
-      jsonb: 'jsonb',
-      // UUID
-      uuid: 'uuid',
-      // Binary types
-      bytea: 'bytea',
-      binary: 'binary',
-      varbinary: 'varbinary',
-      blob: 'blob',
-      tinyblob: 'tinyblob',
-      mediumblob: 'mediumblob',
-      longblob: 'longblob',
-      // Network types (PostgreSQL)
-      inet: 'inet',
-      cidr: 'cidr',
-      macaddr: 'macaddr',
-      macaddr8: 'macaddr8',
-      // Geometric types (PostgreSQL)
-      point: 'point',
-      line: 'line',
-      lseg: 'lseg',
-      box: 'box',
-      path: 'path',
-      polygon: 'polygon',
-      circle: 'circle',
-      // Range types (PostgreSQL)
-      int4range: 'int4range',
-      int8range: 'int8range',
-      numrange: 'numrange',
-      tsrange: 'tsrange',
-      tstzrange: 'tstzrange',
-      daterange: 'daterange',
-      // Bit types
-      bit: 'bit',
-      'bit varying': 'varbit',
-      varbit: 'varbit',
-      // Other types
-      xml: 'xml',
-      tsvector: 'tsvector',
-      tsquery: 'tsquery',
-      enum: 'enum',
-      set: 'set',
-    };
-
-    // Extract base type and length/precision
-    const match = sqlType.toLowerCase().match(/^([a-z][a-z0-9_ ]*?)(\([^)]*\))?$/);
-    if (!match) {
-      return sqlType.toLowerCase();
-    }
-
-    const baseType = match[1].trim();
-    const lengthPrecision = match[2] || '';
-
-    const normalizedBase = typeMap[baseType] || baseType;
-
-    // Preserve length/precision for types that support it
-    const typesWithLength = [
-      'varchar',
-      'char',
-      'decimal',
-      'numeric',
-      'binary',
-      'varbinary',
-      'bit',
-      'varbit',
-      'time',
-      'timetz',
-      'timestamp',
-      'timestamptz',
-      'interval',
-    ];
-    if (lengthPrecision && typesWithLength.includes(normalizedBase)) {
-      return normalizedBase + lengthPrecision;
-    }
-
-    return normalizedBase;
   }
 }

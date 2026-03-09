@@ -6,6 +6,8 @@ import { SchemaIntrospector } from './schema-introspector';
 import { SchemaLoader } from './schema-loader';
 import { SchemaDiffer } from './schema-differ';
 import { SqlGenerator } from './sql-generator';
+import { escapeSqlForTemplate } from './utils/sql-string';
+import { ensureDirectoryExists, sanitizeFileName } from './utils/path-resolver';
 
 export class MigrationGenerator {
   constructor(
@@ -18,11 +20,11 @@ export class MigrationGenerator {
   async generateMigration(name: string, options: GeneratorOptions = {}): Promise<string> {
     const { outputFormat = 'ts' } = options;
     const timestamp = Date.now();
-    const fileName = `${timestamp}_${this.sanitizeName(name)}`;
+    const fileName = `${timestamp}_${sanitizeFileName(name)}`;
     const extension = outputFormat === 'js' ? 'js' : 'ts';
     const fullPath = path.join(this.migrationsFolder, `${fileName}.${extension}`);
 
-    this.ensureMigrationsFolder();
+    ensureDirectoryExists(this.migrationsFolder);
 
     // Try to auto-generate migration from schema diff
     const content = await this.generateMigrationContent(name, outputFormat);
@@ -93,14 +95,11 @@ export class MigrationGenerator {
   ): string {
     const changesSummary = this.generateChangesSummary(changes);
 
-    // Escape backticks and dollar signs in SQL to avoid breaking template literals
-    const escapeSql = (sqlStr: string) => sqlStr.replace(/`/g, '\\`').replace(/\$/g, '\\$');
-
     const upSQL = upStatements
-      .map((stmt) => `  await db.execute(sql\`${escapeSql(stmt)}\`);`)
+      .map((stmt) => `  await db.execute(sql\`${escapeSqlForTemplate(stmt)}\`);`)
       .join('\n');
     const downSQL = downStatements
-      .map((stmt) => `  await db.execute(sql\`${escapeSql(stmt)}\`);`)
+      .map((stmt) => `  await db.execute(sql\`${escapeSqlForTemplate(stmt)}\`);`)
       .join('\n');
 
     if (outputFormat === 'js') {
@@ -200,19 +199,6 @@ export default { up, down };
     }
 
     return summary.join('\n');
-  }
-
-  private sanitizeName(name: string): string {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '_')
-      .replace(/^_|_$/g, '');
-  }
-
-  private ensureMigrationsFolder(): void {
-    if (!fs.existsSync(this.migrationsFolder)) {
-      fs.mkdirSync(this.migrationsFolder, { recursive: true });
-    }
   }
 
   private getMigrationTemplate(name: string, outputFormat: 'ts' | 'js' = 'ts'): string {
@@ -333,7 +319,7 @@ export default { up, down };
 
     console.log(`Found ${entries.length} drizzle-kit migration(s) to import.\n`);
 
-    this.ensureMigrationsFolder();
+    ensureDirectoryExists(this.migrationsFolder);
 
     // Process each migration
     for (const entry of entries) {
@@ -405,7 +391,7 @@ export default { up, down };
   private extractMigrationName(tag: string): string {
     // Remove leading index (e.g., "0000_") if present
     const withoutIndex = tag.replace(/^\d+_/, '');
-    return this.sanitizeName(withoutIndex);
+    return sanitizeFileName(withoutIndex);
   }
 
   /**
@@ -418,18 +404,17 @@ export default { up, down };
     statements: string[],
     outputFormat: 'ts' | 'js' = 'ts'
   ): string {
-    // Escape backticks and dollar signs
-    const escapeSql = (sqlStr: string) => sqlStr.replace(/`/g, '\\`').replace(/\$/g, '\\$');
-
     const upSQL = statements
-      .map((stmt) => `  await db.execute(sql\`${escapeSql(stmt)}\`);`)
+      .map((stmt) => `  await db.execute(sql\`${escapeSqlForTemplate(stmt)}\`);`)
       .join('\n');
 
     // Try to generate reverse statements for simple DDL
     const downStatements = this.generateReverseStatements(statements);
     const downSQL =
       downStatements.length > 0
-        ? downStatements.map((stmt) => `  await db.execute(sql\`${escapeSql(stmt)}\`);`).join('\n')
+        ? downStatements
+            .map((stmt) => `  await db.execute(sql\`${escapeSqlForTemplate(stmt)}\`);`)
+            .join('\n')
         : '  // TODO: Implement down migration\n  // This migration was imported from drizzle-kit and requires manual down implementation.';
 
     if (outputFormat === 'js') {

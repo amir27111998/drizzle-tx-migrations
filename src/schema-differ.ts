@@ -4,26 +4,12 @@ import type {
   TableColumn,
   TableIndex,
   ForeignKey,
-} from './schema-introspector';
+  SchemaChange,
+  TableChange,
+} from './types/schema-types';
 
-export interface SchemaChange {
-  type:
-    | 'create_table'
-    | 'drop_table'
-    | 'alter_table'
-    | 'create_index'
-    | 'drop_index'
-    | 'add_foreign_key'
-    | 'drop_foreign_key';
-  table: string;
-  details?: any;
-}
-
-export interface TableChange {
-  type: 'add_column' | 'drop_column' | 'modify_column';
-  column: string;
-  details?: any;
-}
+// Re-export types for backward compatibility
+export type { SchemaChange, TableChange };
 
 export class SchemaDiffer {
   constructor(
