@@ -48,10 +48,12 @@ npm run migration:run
 
 **See [sample-migrations/](./sample-migrations/)** for migration file examples:
 
-- Creating tables
-- Adding indexes
-- Data migrations
-- Complex multi-step migrations
+- `1234567890_create_users_table.ts` - Basic table creation
+- `1234567891_add_users_indexes.ts` - Adding indexes
+- `1234567892_create_posts_table.ts` - Foreign keys, JSON/JSONB, boolean columns
+- `1234567893_create_products_table.ts` - Decimal, UUID, numeric types
+- `1234567894_no_transaction_migration.ts` - Disabling transactions for CONCURRENTLY operations
+- `1234567895_data_migration.ts` - Data migrations with schema changes
 
 ## Directory Structure
 

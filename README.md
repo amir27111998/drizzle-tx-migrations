@@ -4,7 +4,7 @@ TypeORM-like migrations for Drizzle ORM with full transaction support and indivi
 
 [![npm version](https://img.shields.io/npm/v/drizzle-tx-migrations.svg)](https://www.npmjs.com/package/drizzle-tx-migrations)
 [![CI](https://github.com/amir27111998/drizzle-tx-migrations/actions/workflows/ci.yml/badge.svg)](https://github.com/amir27111998/drizzle-tx-migrations/actions/workflows/ci.yml)
-[![Tests](https://img.shields.io/badge/tests-107%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-148%20passing-brightgreen)]()
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/amir27111998/drizzle-tx-migrations/blob/main/LICENSE)
 
 ## What's New in v1.2.0 🎉
@@ -295,7 +295,30 @@ Auto-generation works with all supported databases:
 
 - **PostgreSQL** - Full support for all features
 - **MySQL** - Full support for all features
-- **SQLite** - Partial support (some ALTER operations generate comments for manual review)
+- **SQLite** - Full support with table recreation pattern for schema changes
+
+### Supported Data Types
+
+The migration system supports a comprehensive set of data types for each database:
+
+**PostgreSQL:**
+- Numeric: `INTEGER`, `BIGINT`, `SMALLINT`, `SERIAL`, `REAL`, `DOUBLE PRECISION`, `DECIMAL`, `NUMERIC`
+- String: `VARCHAR`, `CHAR`, `TEXT`
+- Boolean: `BOOLEAN`
+- Date/Time: `TIMESTAMP`, `TIMESTAMPTZ`, `DATE`, `TIME`
+- JSON: `JSON`, `JSONB`
+- Other: `UUID`, `BLOB`
+
+**MySQL:**
+- Numeric: `INT`, `BIGINT`, `SMALLINT`, `FLOAT`, `DOUBLE`, `DECIMAL`, `NUMERIC`
+- String: `VARCHAR`, `CHAR`, `TEXT`
+- Boolean: `BOOLEAN`
+- Date/Time: `TIMESTAMP`, `DATETIME`, `DATE`
+- JSON: `JSON`
+
+**SQLite:**
+- Uses type affinity: `INTEGER`, `TEXT`, `REAL`, `BLOB`
+- Automatically maps Drizzle types to appropriate SQLite types
 
 ## Commands
 
