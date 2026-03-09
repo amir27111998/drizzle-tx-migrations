@@ -618,24 +618,63 @@ export class SqlGenerator {
 
     if (this.dialect === 'postgresql') {
       const pgTypes: Record<string, string> = {
+        // Numeric types
         integer: 'INTEGER',
+        int: 'INTEGER',
         bigint: 'BIGINT',
         smallint: 'SMALLINT',
-        varchar: 'VARCHAR',
-        char: 'CHAR',
-        text: 'TEXT',
-        boolean: 'BOOLEAN',
-        timestamp: 'TIMESTAMP',
-        timestamptz: 'TIMESTAMPTZ',
-        date: 'DATE',
-        time: 'TIME',
-        json: 'JSON',
-        jsonb: 'JSONB',
-        uuid: 'UUID',
         real: 'REAL',
         double: 'DOUBLE PRECISION',
         decimal: 'DECIMAL',
         numeric: 'NUMERIC',
+        // String types
+        varchar: 'VARCHAR',
+        char: 'CHAR',
+        text: 'TEXT',
+        // Boolean
+        boolean: 'BOOLEAN',
+        bool: 'BOOLEAN',
+        // Date/Time types
+        timestamp: 'TIMESTAMP',
+        timestamptz: 'TIMESTAMPTZ',
+        date: 'DATE',
+        time: 'TIME',
+        timetz: 'TIMETZ',
+        interval: 'INTERVAL',
+        // JSON types
+        json: 'JSON',
+        jsonb: 'JSONB',
+        // UUID
+        uuid: 'UUID',
+        // Binary types
+        bytea: 'BYTEA',
+        // Network types
+        inet: 'INET',
+        cidr: 'CIDR',
+        macaddr: 'MACADDR',
+        macaddr8: 'MACADDR8',
+        // Geometric types
+        point: 'POINT',
+        line: 'LINE',
+        lseg: 'LSEG',
+        box: 'BOX',
+        path: 'PATH',
+        polygon: 'POLYGON',
+        circle: 'CIRCLE',
+        // Range types
+        int4range: 'INT4RANGE',
+        int8range: 'INT8RANGE',
+        numrange: 'NUMRANGE',
+        tsrange: 'TSRANGE',
+        tstzrange: 'TSTZRANGE',
+        daterange: 'DATERANGE',
+        // Other types
+        money: 'MONEY',
+        bit: 'BIT',
+        varbit: 'VARBIT',
+        xml: 'XML',
+        tsvector: 'TSVECTOR',
+        tsquery: 'TSQUERY',
       };
       const mappedType = pgTypes[baseType] || baseType.toUpperCase();
       // Add default length for varchar/char if not specified
@@ -645,45 +684,104 @@ export class SqlGenerator {
       return mappedType + lengthPrecision.toUpperCase();
     } else if (this.dialect === 'mysql') {
       const mysqlTypes: Record<string, string> = {
+        // Numeric types
         integer: 'INT',
+        int: 'INT',
         bigint: 'BIGINT',
         smallint: 'SMALLINT',
-        varchar: 'VARCHAR',
-        char: 'CHAR',
-        text: 'TEXT',
-        boolean: 'BOOLEAN',
-        timestamp: 'TIMESTAMP',
-        datetime: 'DATETIME',
-        date: 'DATE',
-        json: 'JSON',
+        tinyint: 'TINYINT',
+        mediumint: 'MEDIUMINT',
+        float: 'FLOAT',
         real: 'FLOAT',
         double: 'DOUBLE',
         decimal: 'DECIMAL',
         numeric: 'NUMERIC',
+        // String types
+        varchar: 'VARCHAR',
+        char: 'CHAR',
+        text: 'TEXT',
+        tinytext: 'TINYTEXT',
+        mediumtext: 'MEDIUMTEXT',
+        longtext: 'LONGTEXT',
+        // Boolean
+        boolean: 'BOOLEAN',
+        bool: 'BOOLEAN',
+        // Date/Time types
+        timestamp: 'TIMESTAMP',
+        datetime: 'DATETIME',
+        date: 'DATE',
+        time: 'TIME',
+        year: 'YEAR',
+        // JSON
+        json: 'JSON',
+        // Binary types
+        binary: 'BINARY',
+        varbinary: 'VARBINARY',
+        blob: 'BLOB',
+        tinyblob: 'TINYBLOB',
+        mediumblob: 'MEDIUMBLOB',
+        longblob: 'LONGBLOB',
+        // Enum and Set
+        enum: 'ENUM',
+        set: 'SET',
+        // Bit
+        bit: 'BIT',
       };
       const mappedType = mysqlTypes[baseType] || baseType.toUpperCase();
       // Add default length for varchar/char if not specified
       if ((baseType === 'varchar' || baseType === 'char') && !lengthPrecision) {
         return `${mappedType}(255)`;
       }
+      // Add default length for binary/varbinary if not specified
+      if ((baseType === 'binary' || baseType === 'varbinary') && !lengthPrecision) {
+        return `${mappedType}(255)`;
+      }
       return mappedType + lengthPrecision.toUpperCase();
     } else {
-      // SQLite
+      // SQLite - uses type affinity
       const sqliteTypes: Record<string, string> = {
+        // INTEGER affinity
         integer: 'INTEGER',
+        int: 'INTEGER',
         bigint: 'INTEGER',
         smallint: 'INTEGER',
+        tinyint: 'INTEGER',
+        mediumint: 'INTEGER',
+        boolean: 'INTEGER',
+        bool: 'INTEGER',
+        // TEXT affinity
         varchar: 'TEXT',
         char: 'TEXT',
         text: 'TEXT',
-        boolean: 'INTEGER',
+        tinytext: 'TEXT',
+        mediumtext: 'TEXT',
+        longtext: 'TEXT',
+        clob: 'TEXT',
+        // Date/time stored as TEXT in SQLite
         timestamp: 'TEXT',
+        timestamptz: 'TEXT',
+        datetime: 'TEXT',
         date: 'TEXT',
+        time: 'TEXT',
+        // JSON stored as TEXT
         json: 'TEXT',
+        jsonb: 'TEXT',
+        // UUID stored as TEXT
+        uuid: 'TEXT',
+        // REAL affinity
         real: 'REAL',
         double: 'REAL',
+        float: 'REAL',
         decimal: 'REAL',
+        numeric: 'REAL',
+        // BLOB affinity - binary types
         blob: 'BLOB',
+        binary: 'BLOB',
+        varbinary: 'BLOB',
+        bytea: 'BLOB',
+        tinyblob: 'BLOB',
+        mediumblob: 'BLOB',
+        longblob: 'BLOB',
       };
       return sqliteTypes[baseType] || 'TEXT';
     }

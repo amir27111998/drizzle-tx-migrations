@@ -374,53 +374,143 @@ export class SchemaIntrospector {
 
   private normalizePostgreSQLType(type: string): string {
     const typeMap: Record<string, string> = {
+      // String types
       'character varying': 'varchar',
-      'timestamp without time zone': 'timestamp',
-      'timestamp with time zone': 'timestamptz',
-      'double precision': 'double',
+      character: 'char',
+      text: 'text',
+      // Numeric types
       bigint: 'bigint',
       integer: 'integer',
       smallint: 'smallint',
+      real: 'real',
+      'double precision': 'double',
+      numeric: 'numeric',
+      decimal: 'decimal',
+      // Boolean
       boolean: 'boolean',
-      text: 'text',
-      json: 'json',
-      jsonb: 'jsonb',
-      uuid: 'uuid',
+      // Date/Time types
+      'timestamp without time zone': 'timestamp',
+      'timestamp with time zone': 'timestamptz',
       date: 'date',
       time: 'time',
+      'time without time zone': 'time',
+      'time with time zone': 'timetz',
+      interval: 'interval',
+      // JSON types
+      json: 'json',
+      jsonb: 'jsonb',
+      // UUID
+      uuid: 'uuid',
+      // Binary types
+      bytea: 'bytea',
+      // Network types
+      inet: 'inet',
+      cidr: 'cidr',
+      macaddr: 'macaddr',
+      macaddr8: 'macaddr8',
+      // Geometric types
+      point: 'point',
+      line: 'line',
+      lseg: 'lseg',
+      box: 'box',
+      path: 'path',
+      polygon: 'polygon',
+      circle: 'circle',
+      // Array types (will be handled separately)
+      // Range types
+      int4range: 'int4range',
+      int8range: 'int8range',
+      numrange: 'numrange',
+      tsrange: 'tsrange',
+      tstzrange: 'tstzrange',
+      daterange: 'daterange',
+      // Other types
+      money: 'money',
+      bit: 'bit',
+      'bit varying': 'varbit',
+      xml: 'xml',
+      tsvector: 'tsvector',
+      tsquery: 'tsquery',
     };
     return typeMap[type] || type;
   }
 
   private normalizeMySQLType(type: string): string {
     const typeMap: Record<string, string> = {
+      // String types
       varchar: 'varchar',
+      char: 'char',
+      text: 'text',
+      tinytext: 'tinytext',
+      mediumtext: 'mediumtext',
+      longtext: 'longtext',
+      // Numeric types
       int: 'int',
+      integer: 'int',
       bigint: 'bigint',
       tinyint: 'tinyint',
       smallint: 'smallint',
       mediumint: 'mediumint',
-      text: 'text',
-      longtext: 'longtext',
+      float: 'float',
+      double: 'double',
+      decimal: 'decimal',
+      numeric: 'numeric',
+      // Boolean
+      boolean: 'boolean',
+      bool: 'boolean',
+      // Date/Time types
       datetime: 'datetime',
       timestamp: 'timestamp',
       date: 'date',
-      boolean: 'boolean',
+      time: 'time',
+      year: 'year',
+      // JSON
       json: 'json',
-      decimal: 'decimal',
-      float: 'float',
-      double: 'double',
+      // Binary types
+      binary: 'binary',
+      varbinary: 'varbinary',
+      blob: 'blob',
+      tinyblob: 'tinyblob',
+      mediumblob: 'mediumblob',
+      longblob: 'longblob',
+      // Enum and Set
+      enum: 'enum',
+      set: 'set',
+      // Bit
+      bit: 'bit',
     };
     return typeMap[type] || type;
   }
 
   private normalizeSQLiteType(type: string): string {
     const typeUpper = type.toUpperCase();
+    // SQLite type affinity rules
+    // INTEGER affinity
     if (typeUpper.includes('INT')) return 'integer';
-    if (typeUpper.includes('CHAR') || typeUpper.includes('TEXT')) return 'text';
-    if (typeUpper.includes('REAL') || typeUpper.includes('FLOA') || typeUpper.includes('DOUB'))
+    // TEXT affinity
+    if (
+      typeUpper.includes('CHAR') ||
+      typeUpper.includes('TEXT') ||
+      typeUpper.includes('CLOB') ||
+      typeUpper.includes('VARCHAR') ||
+      typeUpper.includes('VARYING')
+    )
+      return 'text';
+    // REAL affinity
+    if (
+      typeUpper.includes('REAL') ||
+      typeUpper.includes('FLOA') ||
+      typeUpper.includes('DOUB') ||
+      typeUpper.includes('NUMERIC') ||
+      typeUpper.includes('DECIMAL')
+    )
       return 'real';
-    if (typeUpper.includes('BLOB')) return 'blob';
+    // BLOB affinity (no type or BLOB)
+    if (typeUpper.includes('BLOB') || typeUpper === '' || typeUpper.includes('BINARY'))
+      return 'blob';
+    // NUMERIC affinity for everything else that might be boolean, date, etc.
+    if (typeUpper.includes('BOOL')) return 'integer';
+    if (typeUpper.includes('DATE') || typeUpper.includes('TIME')) return 'text';
     return 'text';
   }
 }

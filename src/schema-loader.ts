@@ -416,45 +416,129 @@ export class SchemaLoader {
   private normalizeSQLType(sqlType: string): string {
     // Normalize common type aliases
     const typeMap: Record<string, string> = {
+      // PostgreSQL serial types (auto-increment)
       serial: 'integer',
+      serial4: 'integer',
+      serial8: 'bigint',
       bigserial: 'bigint',
+      smallserial: 'smallint',
+      // String types
       varchar: 'varchar',
+      'character varying': 'varchar',
       char: 'char',
+      character: 'char',
       text: 'text',
+      tinytext: 'tinytext',
+      mediumtext: 'mediumtext',
+      longtext: 'longtext',
+      // Numeric types
       integer: 'integer',
       int: 'integer',
+      int4: 'integer',
+      int8: 'bigint',
       bigint: 'bigint',
       smallint: 'smallint',
+      int2: 'smallint',
+      tinyint: 'tinyint',
+      mediumint: 'mediumint',
+      real: 'real',
+      float: 'float',
+      float4: 'real',
+      float8: 'double',
+      double: 'double',
+      'double precision': 'double',
+      decimal: 'decimal',
+      numeric: 'numeric',
+      money: 'money',
+      // Boolean
       boolean: 'boolean',
       bool: 'boolean',
-      tinyint: 'tinyint',
+      // Date/Time types
       timestamp: 'timestamp',
+      'timestamp without time zone': 'timestamp',
       timestamptz: 'timestamptz',
+      'timestamp with time zone': 'timestamptz',
       datetime: 'datetime',
       date: 'date',
       time: 'time',
+      'time without time zone': 'time',
+      timetz: 'timetz',
+      'time with time zone': 'timetz',
+      interval: 'interval',
+      year: 'year',
+      // JSON types
       json: 'json',
       jsonb: 'jsonb',
+      // UUID
       uuid: 'uuid',
-      real: 'real',
-      double: 'double',
-      decimal: 'decimal',
+      // Binary types
+      bytea: 'bytea',
+      binary: 'binary',
+      varbinary: 'varbinary',
       blob: 'blob',
+      tinyblob: 'tinyblob',
+      mediumblob: 'mediumblob',
+      longblob: 'longblob',
+      // Network types (PostgreSQL)
+      inet: 'inet',
+      cidr: 'cidr',
+      macaddr: 'macaddr',
+      macaddr8: 'macaddr8',
+      // Geometric types (PostgreSQL)
+      point: 'point',
+      line: 'line',
+      lseg: 'lseg',
+      box: 'box',
+      path: 'path',
+      polygon: 'polygon',
+      circle: 'circle',
+      // Range types (PostgreSQL)
+      int4range: 'int4range',
+      int8range: 'int8range',
+      numrange: 'numrange',
+      tsrange: 'tsrange',
+      tstzrange: 'tstzrange',
+      daterange: 'daterange',
+      // Bit types
+      bit: 'bit',
+      'bit varying': 'varbit',
+      varbit: 'varbit',
+      // Other types
+      xml: 'xml',
+      tsvector: 'tsvector',
+      tsquery: 'tsquery',
+      enum: 'enum',
+      set: 'set',
     };
 
     // Extract base type and length/precision
-    const match = sqlType.toLowerCase().match(/^([a-z]+)(\([^)]*\))?$/);
+    const match = sqlType.toLowerCase().match(/^([a-z][a-z0-9_ ]*?)(\([^)]*\))?$/);
     if (!match) {
       return sqlType.toLowerCase();
     }
 
-    const baseType = match[1];
+    const baseType = match[1].trim();
     const lengthPrecision = match[2] || '';
 
     const normalizedBase = typeMap[baseType] || baseType;
 
     // Preserve length/precision for types that support it
-    if (lengthPrecision && ['varchar', 'char', 'decimal', 'numeric'].includes(normalizedBase)) {
+    const typesWithLength = [
+      'varchar',
+      'char',
+      'decimal',
+      'numeric',
+      'binary',
+      'varbinary',
+      'bit',
+      'varbit',
+      'time',
+      'timetz',
+      'timestamp',
+      'timestamptz',
+      'interval',
+    ];
+    if (lengthPrecision && typesWithLength.includes(normalizedBase)) {
       return normalizedBase + lengthPrecision;
     }
 

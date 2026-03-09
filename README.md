@@ -302,23 +302,36 @@ Auto-generation works with all supported databases:
 The migration system supports a comprehensive set of data types for each database:
 
 **PostgreSQL:**
-- Numeric: `INTEGER`, `BIGINT`, `SMALLINT`, `SERIAL`, `REAL`, `DOUBLE PRECISION`, `DECIMAL`, `NUMERIC`
+- Numeric: `INTEGER`, `BIGINT`, `SMALLINT`, `SERIAL`, `BIGSERIAL`, `REAL`, `DOUBLE PRECISION`, `DECIMAL`, `NUMERIC`, `MONEY`
 - String: `VARCHAR`, `CHAR`, `TEXT`
 - Boolean: `BOOLEAN`
-- Date/Time: `TIMESTAMP`, `TIMESTAMPTZ`, `DATE`, `TIME`
+- Date/Time: `TIMESTAMP`, `TIMESTAMPTZ`, `DATE`, `TIME`, `TIMETZ`, `INTERVAL`
 - JSON: `JSON`, `JSONB`
-- Other: `UUID`, `BLOB`
+- Binary: `BYTEA`
+- UUID: `UUID`
+- Network: `INET`, `CIDR`, `MACADDR`, `MACADDR8`
+- Geometric: `POINT`, `LINE`, `LSEG`, `BOX`, `PATH`, `POLYGON`, `CIRCLE`
+- Range: `INT4RANGE`, `INT8RANGE`, `NUMRANGE`, `TSRANGE`, `TSTZRANGE`, `DATERANGE`
+- Other: `BIT`, `VARBIT`, `XML`, `TSVECTOR`, `TSQUERY`
 
 **MySQL:**
-- Numeric: `INT`, `BIGINT`, `SMALLINT`, `FLOAT`, `DOUBLE`, `DECIMAL`, `NUMERIC`
-- String: `VARCHAR`, `CHAR`, `TEXT`
+- Numeric: `INT`, `BIGINT`, `SMALLINT`, `TINYINT`, `MEDIUMINT`, `FLOAT`, `DOUBLE`, `DECIMAL`, `NUMERIC`
+- String: `VARCHAR`, `CHAR`, `TEXT`, `TINYTEXT`, `MEDIUMTEXT`, `LONGTEXT`
 - Boolean: `BOOLEAN`
-- Date/Time: `TIMESTAMP`, `DATETIME`, `DATE`
+- Date/Time: `TIMESTAMP`, `DATETIME`, `DATE`, `TIME`, `YEAR`
 - JSON: `JSON`
+- Binary: `BINARY`, `VARBINARY`, `BLOB`, `TINYBLOB`, `MEDIUMBLOB`, `LONGBLOB`
+- Other: `ENUM`, `SET`, `BIT`
 
 **SQLite:**
 - Uses type affinity: `INTEGER`, `TEXT`, `REAL`, `BLOB`
 - Automatically maps Drizzle types to appropriate SQLite types
+- Binary types (BINARY, VARBINARY, BYTEA) map to BLOB
+
+**Binary/ULID Support:**
+- PostgreSQL: Use `BYTEA` for binary data and ULIDs
+- MySQL: Use `BINARY(16)` or `VARBINARY` for ULIDs
+- SQLite: Use `BLOB` for binary data
 
 ## Commands
 
