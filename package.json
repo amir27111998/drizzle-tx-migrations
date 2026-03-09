@@ -1,6 +1,6 @@
 {
   "name": "drizzle-tx-migrations",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "TypeORM-like migrations for Drizzle ORM with transaction support",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
