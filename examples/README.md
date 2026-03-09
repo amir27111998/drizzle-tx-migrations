@@ -54,6 +54,7 @@ npm run migration:run
 - `1234567893_create_products_table.ts` - Decimal, UUID, numeric types
 - `1234567894_no_transaction_migration.ts` - Disabling transactions for CONCURRENTLY operations
 - `1234567895_data_migration.ts` - Data migrations with schema changes
+- `1234567896_binary_ulid_example.ts` - Binary columns and ULID storage
 
 ## Directory Structure
 
