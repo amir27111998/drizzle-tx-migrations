@@ -15,6 +15,7 @@ npm run migration:validate
 **Use case:** Pre-commit hooks, linting
 
 **Exit codes:**
+
 - `0` - All migrations are valid
 - `1` - Validation errors found
 
@@ -29,6 +30,7 @@ npm run migration:check
 **Use case:** CI/CD pipelines, ensure no migrations missing
 
 **Exit codes:**
+
 - `0` - All valid, no pending migrations
 - `1` - Validation errors OR pending migrations exist
 
@@ -87,6 +89,7 @@ steps:
 ## GitLab CI
 
 **.gitlab-ci.yml:**
+
 ```yaml
 check-migrations:
   image: node:18
@@ -108,6 +111,7 @@ check-migrations:
 ## Jenkins
 
 **Jenkinsfile:**
+
 ```groovy
 pipeline {
   agent any
@@ -140,6 +144,7 @@ pipeline {
 ## Pre-commit Hook
 
 **.husky/pre-commit:**
+
 ```bash
 #!/bin/bash
 
@@ -155,6 +160,7 @@ echo "✅ Migrations validated"
 ## Docker Compose for Testing
 
 **docker-compose.test.yml:**
+
 ```yaml
 version: '3.8'
 
@@ -165,9 +171,9 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: test_db
     ports:
-      - "5432:5432"
+      - '5432:5432'
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -187,6 +193,7 @@ services:
 ```
 
 Run tests:
+
 ```bash
 docker compose -f docker-compose.test.yml up --abort-on-container-exit
 ```
@@ -259,9 +266,9 @@ fi
 
 ## Summary
 
-| Command | Database Required | Fails on Pending | Use Case |
-|---------|-------------------|------------------|----------|
-| `validate` | ❌ No | ❌ No | Pre-commit, linting |
-| `check` | ✅ Yes | ✅ Yes | CI/CD, ensure sync |
-| `check --no-fail-pending` | ✅ Yes | ❌ No | Development |
-| `status` | ✅ Yes | ❌ No | Information only |
+| Command                   | Database Required | Fails on Pending | Use Case            |
+| ------------------------- | ----------------- | ---------------- | ------------------- |
+| `validate`                | ❌ No             | ❌ No            | Pre-commit, linting |
+| `check`                   | ✅ Yes            | ✅ Yes           | CI/CD, ensure sync  |
+| `check --no-fail-pending` | ✅ Yes            | ❌ No            | Development         |
+| `status`                  | ✅ Yes            | ❌ No            | Information only    |

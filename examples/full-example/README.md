@@ -5,16 +5,19 @@ This is a complete example showing how to use drizzle-tx-migrations in a real pr
 ## Setup
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Create your database:
+
 ```bash
 createdb mydb
 ```
 
 3. Copy environment file:
+
 ```bash
 cp .env.example .env
 ```

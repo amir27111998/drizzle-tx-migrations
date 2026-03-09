@@ -14,6 +14,7 @@ docker compose up -d
 ```
 
 This starts:
+
 - **PostgreSQL** on port `54322`
 - **MySQL** on port `33306`
 - **Adminer** (Database UI) on port `8080`
@@ -23,6 +24,7 @@ This starts:
 Open [http://localhost:8080](http://localhost:8080)
 
 **PostgreSQL:**
+
 - System: `PostgreSQL`
 - Server: `postgres`
 - Username: `postgres`
@@ -30,6 +32,7 @@ Open [http://localhost:8080](http://localhost:8080)
 - Database: `test_db`
 
 **MySQL:**
+
 - System: `MySQL`
 - Server: `mysql`
 - Username: `root`
@@ -80,20 +83,22 @@ docker compose down -v
 
 ## Port Reference
 
-| Service | Port | Purpose |
-|---------|------|---------|
+| Service    | Port  | Purpose                         |
+| ---------- | ----- | ------------------------------- |
 | PostgreSQL | 54322 | Non-standard to avoid conflicts |
-| MySQL | 33306 | Non-standard to avoid conflicts |
-| Adminer | 8080 | Database management UI |
+| MySQL      | 33306 | Non-standard to avoid conflicts |
+| Adminer    | 8080  | Database management UI          |
 
 ## Testing vs Development
 
 **Development (`docker compose.yml`):**
+
 - Persistent data (survives restarts)
 - Adminer UI included
 - Ports: 54322, 33306
 
 **Testing (`docker compose.test.yml`):**
+
 - Temporary data (tmpfs, fast)
 - No UI needed
 - Ports: 54320, 33060
@@ -145,11 +150,11 @@ If ports 54322 or 33306 are taken, edit `docker compose.yml`:
 ```yaml
 postgres:
   ports:
-    - "54323:5432"  # Change external port
+    - '54323:5432' # Change external port
 
 mysql:
   ports:
-    - "33307:3306"  # Change external port
+    - '33307:3306' # Change external port
 ```
 
 Then update `.env` to match.

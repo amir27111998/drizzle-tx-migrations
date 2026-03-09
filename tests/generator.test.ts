@@ -17,9 +17,9 @@ describe('MigrationGenerator', () => {
     cleanupTestEnvironment(testDir, testDb);
   });
 
-  test('should generate a migration file', () => {
+  test('should generate a migration file', async () => {
     const generator = new MigrationGenerator(testDir);
-    const filePath = generator.generateMigration('create_users_table');
+    const filePath = await generator.generateMigration('create_users_table');
 
     expect(fs.existsSync(filePath)).toBe(true);
     expect(filePath).toContain('create_users_table');
@@ -30,22 +30,22 @@ describe('MigrationGenerator', () => {
     expect(content).toContain('MigrationContext');
   });
 
-  test('should sanitize migration names', () => {
+  test('should sanitize migration names', async () => {
     const generator = new MigrationGenerator(testDir);
-    const filePath = generator.generateMigration('Create Users Table!!!');
+    const filePath = await generator.generateMigration('Create Users Table!!!');
 
     const fileName = path.basename(filePath);
     expect(fileName).toContain('create_users_table');
     expect(fileName).not.toContain('!');
   });
 
-  test('should list migration files', () => {
+  test('should list migration files', async () => {
     const generator = new MigrationGenerator(testDir);
 
     // Generate multiple migrations
-    generator.generateMigration('migration_one');
-    generator.generateMigration('migration_two');
-    generator.generateMigration('migration_three');
+    await generator.generateMigration('migration_one');
+    await generator.generateMigration('migration_two');
+    await generator.generateMigration('migration_three');
 
     const migrations = generator.listMigrations();
     expect(migrations).toHaveLength(3);

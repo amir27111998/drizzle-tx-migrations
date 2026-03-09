@@ -47,10 +47,13 @@ npm run migration:run
 ### 6. Sample Migrations
 
 **See [sample-migrations/](./sample-migrations/)** for migration file examples:
-- Creating tables
-- Adding indexes
-- Data migrations
-- Complex multi-step migrations
+
+- `1234567890_create_users_table.ts` - Basic table creation
+- `1234567891_add_users_indexes.ts` - Adding indexes
+- `1234567892_create_posts_table.ts` - Foreign keys, JSON/JSONB, boolean columns
+- `1234567893_create_products_table.ts` - Decimal, UUID, numeric types
+- `1234567894_no_transaction_migration.ts` - Disabling transactions for CONCURRENTLY operations
+- `1234567895_data_migration.ts` - Data migrations with schema changes
 
 ## Directory Structure
 
@@ -80,6 +83,7 @@ cp .env.example .env
 ```
 
 **Ports:**
+
 - PostgreSQL: `54322`
 - MySQL: `33306`
 - Adminer UI: `8080`
@@ -155,6 +159,7 @@ npm run test:db:down
 ```
 
 **Test Ports:**
+
 - PostgreSQL: `54320`
 - MySQL: `33060`
 
@@ -162,10 +167,10 @@ npm run test:db:down
 
 The project includes two Docker Compose files:
 
-| File | Purpose | Ports | Data |
-|------|---------|-------|------|
-| `docker-compose.yml` | Development | 54322, 33306 | Persistent |
-| `docker-compose.test.yml` | Testing | 54320, 33060 | Temporary (tmpfs) |
+| File                      | Purpose     | Ports        | Data              |
+| ------------------------- | ----------- | ------------ | ----------------- |
+| `docker-compose.yml`      | Development | 54322, 33306 | Persistent        |
+| `docker-compose.test.yml` | Testing     | 54320, 33060 | Temporary (tmpfs) |
 
 ## Next Steps
 
