@@ -112,7 +112,8 @@ export class SchemaDiffer {
         changes.push({
           type: 'drop_column',
           column: colName,
-          details: { column: colDef },
+          // Include tableSchema for SQLite table recreation support
+          details: { column: colDef, tableSchema: currentTable },
         });
       }
     }
@@ -126,14 +127,16 @@ export class SchemaDiffer {
         changes.push({
           type: 'add_column',
           column: colName,
-          details: { column: desiredCol },
+          // Include tableSchema for SQLite table recreation support
+          details: { column: desiredCol, tableSchema: desiredTable },
         });
       } else if (this.columnsAreDifferent(currentCol, desiredCol)) {
         // Column exists but is different
         changes.push({
           type: 'modify_column',
           column: colName,
-          details: { currentColumn: currentCol, desiredColumn: desiredCol },
+          // Include tableSchema for SQLite table recreation support
+          details: { currentColumn: currentCol, desiredColumn: desiredCol, tableSchema: currentTable },
         });
       }
     }
@@ -240,7 +243,8 @@ export class SchemaDiffer {
         changes.push({
           type: 'drop_foreign_key',
           table: tableName,
-          details: { foreignKey: fkDef },
+          // Include tableSchema for SQLite table recreation support
+          details: { foreignKey: fkDef, tableSchema: currentTable },
         });
       }
     }
@@ -253,7 +257,8 @@ export class SchemaDiffer {
         changes.push({
           type: 'add_foreign_key',
           table: tableName,
-          details: { foreignKey: desiredFk },
+          // Include tableSchema for SQLite table recreation support
+          details: { foreignKey: desiredFk, tableSchema: currentTable },
         });
       } else if (this.foreignKeysAreDifferent(currentFk, desiredFk)) {
         // FK exists but has different ON DELETE/UPDATE actions
@@ -261,12 +266,14 @@ export class SchemaDiffer {
         changes.push({
           type: 'drop_foreign_key',
           table: tableName,
-          details: { foreignKey: currentFk },
+          // Include tableSchema for SQLite table recreation support
+          details: { foreignKey: currentFk, tableSchema: currentTable },
         });
         changes.push({
           type: 'add_foreign_key',
           table: tableName,
-          details: { foreignKey: desiredFk },
+          // Include tableSchema for SQLite table recreation support
+          details: { foreignKey: desiredFk, tableSchema: currentTable },
         });
       }
       // If FK exists and is the same, no changes needed

@@ -1,6 +1,6 @@
 import type { DbDialect } from './types';
 import type { SchemaChange, TableChange } from './schema-differ';
-import type { TableColumn } from './schema-introspector';
+import type { TableColumn, TableIndex, ForeignKey, TableSchema } from './schema-introspector';
 
 export interface GeneratedSql {
   upStatements: string[];
@@ -192,36 +192,97 @@ export class SqlGenerator {
     switch (change.type) {
       case 'add_column': {
         const colDef = this.generateColumnDefinition(change.details.column);
-        const addSQL =
-          this.dialect === 'sqlite'
-            ? `ALTER TABLE ${table} ADD COLUMN ${colDef};`
-            : `ALTER TABLE ${table} ADD COLUMN ${colDef};`;
+        const addSQL = `ALTER TABLE ${table} ADD COLUMN ${colDef};`;
 
-        const dropSQL =
-          this.dialect === 'sqlite'
-            ? `-- SQLite doesn't support DROP COLUMN natively, manual migration required`
-            : `ALTER TABLE ${table} DROP COLUMN ${this.quote(change.column)};`;
+        // For SQLite down migration (drop column), we need table recreation
+        if (this.dialect === 'sqlite') {
+          const { tableSchema } = change.details;
+          if (tableSchema) {
+            // Create schema without the new column for rollback
+            const columnsWithout = tableSchema.columns.filter(
+              (c: TableColumn) => c.name !== change.column
+            );
+            const schemaWithout: TableSchema = {
+              ...tableSchema,
+              columns: columnsWithout,
+            };
+            const dropStatements = this.generateSqliteTableRecreation(
+              tableName,
+              tableSchema,
+              schemaWithout
+            );
+            return { up: [addSQL], down: dropStatements };
+          }
+        }
 
+        const dropSQL = `ALTER TABLE ${table} DROP COLUMN ${this.quote(change.column)};`;
         return { up: [addSQL], down: [dropSQL] };
       }
 
       case 'drop_column': {
         const colDef = this.generateColumnDefinition(change.details.column);
-        const dropSQL =
-          this.dialect === 'sqlite'
-            ? `-- SQLite doesn't support DROP COLUMN natively, manual migration required`
-            : `ALTER TABLE ${table} DROP COLUMN ${this.quote(change.column)};`;
 
-        const addSQL =
-          this.dialect === 'sqlite'
-            ? `ALTER TABLE ${table} ADD COLUMN ${colDef};`
-            : `ALTER TABLE ${table} ADD COLUMN ${colDef};`;
+        // For SQLite, use table recreation for drop column
+        if (this.dialect === 'sqlite') {
+          const { tableSchema } = change.details;
+          if (tableSchema) {
+            // Create schema without the dropped column
+            const columnsWithout = tableSchema.columns.filter(
+              (c: TableColumn) => c.name !== change.column
+            );
+            const schemaWithout: TableSchema = {
+              ...tableSchema,
+              columns: columnsWithout,
+              // Update primary key if the dropped column was part of it
+              primaryKey: tableSchema.primaryKey.filter((pk: string) => pk !== change.column),
+            };
+            const dropStatements = this.generateSqliteTableRecreation(
+              tableName,
+              tableSchema,
+              schemaWithout
+            );
+            // For down migration, recreate with the column
+            const addStatements = this.generateSqliteTableRecreation(
+              tableName,
+              schemaWithout,
+              tableSchema
+            );
+            return { up: dropStatements, down: addStatements };
+          }
+        }
 
+        const dropSQL = `ALTER TABLE ${table} DROP COLUMN ${this.quote(change.column)};`;
+        const addSQL = `ALTER TABLE ${table} ADD COLUMN ${colDef};`;
         return { up: [dropSQL], down: [addSQL] };
       }
 
       case 'modify_column': {
-        const { currentColumn, desiredColumn } = change.details;
+        const { currentColumn, desiredColumn, tableSchema } = change.details;
+
+        // For SQLite, use table recreation for modify column
+        if (this.dialect === 'sqlite' && tableSchema) {
+          // Create schema with modified column
+          const columnsModified = tableSchema.columns.map((c: TableColumn) =>
+            c.name === change.column ? desiredColumn : c
+          );
+          const schemaModified: TableSchema = {
+            ...tableSchema,
+            columns: columnsModified,
+          };
+          const modifyStatements = this.generateSqliteTableRecreation(
+            tableName,
+            tableSchema,
+            schemaModified
+          );
+          // For down migration, revert to original column
+          const revertStatements = this.generateSqliteTableRecreation(
+            tableName,
+            schemaModified,
+            tableSchema
+          );
+          return { up: modifyStatements, down: revertStatements };
+        }
+
         const modifySQL = this.generateModifyColumn(tableName, desiredColumn);
         const revertSQL = this.generateModifyColumn(tableName, currentColumn);
 
@@ -231,6 +292,82 @@ export class SqlGenerator {
       default:
         return { up: [], down: [] };
     }
+  }
+
+  /**
+   * Generate SQLite table recreation statements for schema changes
+   * This is the standard 12-step process for SQLite ALTER TABLE workarounds
+   * @see https://www.sqlite.org/lang_altertable.html#otheralter
+   */
+  private generateSqliteTableRecreation(
+    tableName: string,
+    oldSchema: TableSchema,
+    newSchema: TableSchema
+  ): string[] {
+    const statements: string[] = [];
+    const table = this.quote(tableName);
+    const tempTable = this.quote(`_${tableName}_old`);
+
+    // Step 1: Disable foreign keys
+    statements.push('PRAGMA foreign_keys=OFF;');
+
+    // Step 2: Rename old table
+    statements.push(`ALTER TABLE ${table} RENAME TO ${tempTable};`);
+
+    // Step 3: Create new table with desired schema
+    const columnDefs = newSchema.columns.map((col: TableColumn) =>
+      this.generateColumnDefinition(col)
+    );
+
+    // Add primary key constraint if multiple columns
+    if (newSchema.primaryKey.length > 1) {
+      const pkCols = newSchema.primaryKey.map((c: string) => this.quote(c)).join(', ');
+      columnDefs.push(`PRIMARY KEY (${pkCols})`);
+    }
+
+    // Add foreign key constraints inline for SQLite
+    for (const fk of newSchema.foreignKeys || []) {
+      const column = this.quote(fk.column);
+      const refTable = this.quote(fk.referencedTable);
+      const refColumn = this.quote(fk.referencedColumn);
+      let onDelete = '';
+      let onUpdate = '';
+      if (fk.onDelete) onDelete = ` ON DELETE ${fk.onDelete}`;
+      if (fk.onUpdate) onUpdate = ` ON UPDATE ${fk.onUpdate}`;
+      columnDefs.push(
+        `FOREIGN KEY (${column}) REFERENCES ${refTable}(${refColumn})${onDelete}${onUpdate}`
+      );
+    }
+
+    statements.push(`CREATE TABLE ${table} (\n  ${columnDefs.join(',\n  ')}\n);`);
+
+    // Step 4: Copy data from old table to new table
+    // Only copy columns that exist in both schemas
+    const oldColumnNames = oldSchema.columns.map((c) => c.name);
+    const newColumnNames = newSchema.columns.map((c) => c.name);
+    const commonColumns = newColumnNames.filter((name) => oldColumnNames.includes(name));
+
+    if (commonColumns.length > 0) {
+      const columnList = commonColumns.map((c) => this.quote(c)).join(', ');
+      statements.push(`INSERT INTO ${table} (${columnList}) SELECT ${columnList} FROM ${tempTable};`);
+    }
+
+    // Step 5: Drop old table
+    statements.push(`DROP TABLE ${tempTable};`);
+
+    // Step 6: Recreate indexes
+    for (const index of newSchema.indexes || []) {
+      const indexName = this.quote(index.name);
+      const columns = index.columns.map((c: string) => this.quote(c)).join(', ');
+      const unique = index.unique ? 'UNIQUE ' : '';
+      statements.push(`CREATE ${unique}INDEX ${indexName} ON ${table} (${columns});`);
+    }
+
+    // Step 7: Re-enable foreign keys and check integrity
+    statements.push('PRAGMA foreign_keys=ON;');
+    statements.push('PRAGMA foreign_key_check;');
+
+    return statements;
   }
 
   private generateModifyColumn(tableName: string, column: TableColumn): string {
@@ -297,7 +434,7 @@ export class SqlGenerator {
   }
 
   private generateAddForeignKey(change: SchemaChange): { up: string[]; down: string[] } {
-    const { foreignKey } = change.details;
+    const { foreignKey, tableSchema } = change.details;
     const tableName = this.quote(change.table);
     const fkName = this.quote(foreignKey.name);
     const column = this.quote(foreignKey.column);
@@ -314,21 +451,33 @@ export class SqlGenerator {
       onUpdate = ` ON UPDATE ${foreignKey.onUpdate}`;
     }
 
-    const addSQL =
-      this.dialect === 'sqlite'
-        ? `-- SQLite doesn't support ADD CONSTRAINT, define foreign keys in CREATE TABLE`
-        : `ALTER TABLE ${tableName} ADD CONSTRAINT ${fkName} FOREIGN KEY (${column}) REFERENCES ${refTable}(${refColumn})${onDelete}${onUpdate};`;
+    // For SQLite, use table recreation to add foreign key
+    if (this.dialect === 'sqlite' && tableSchema) {
+      const schemaWithFk: TableSchema = {
+        ...tableSchema,
+        foreignKeys: [...(tableSchema.foreignKeys || []), foreignKey],
+      };
+      const addStatements = this.generateSqliteTableRecreation(
+        change.table,
+        tableSchema,
+        schemaWithFk
+      );
+      const dropStatements = this.generateSqliteTableRecreation(
+        change.table,
+        schemaWithFk,
+        tableSchema
+      );
+      return { up: addStatements, down: dropStatements };
+    }
 
-    const dropSQL =
-      this.dialect === 'sqlite'
-        ? `-- SQLite doesn't support DROP CONSTRAINT`
-        : `ALTER TABLE ${tableName} DROP CONSTRAINT ${fkName};`;
+    const addSQL = `ALTER TABLE ${tableName} ADD CONSTRAINT ${fkName} FOREIGN KEY (${column}) REFERENCES ${refTable}(${refColumn})${onDelete}${onUpdate};`;
+    const dropSQL = `ALTER TABLE ${tableName} DROP CONSTRAINT ${fkName};`;
 
     return { up: [addSQL], down: [dropSQL] };
   }
 
   private generateDropForeignKey(change: SchemaChange): { up: string[]; down: string[] } {
-    const { foreignKey } = change.details;
+    const { foreignKey, tableSchema } = change.details;
     const tableName = this.quote(change.table);
     const fkName = this.quote(foreignKey.name);
     const column = this.quote(foreignKey.column);
@@ -345,15 +494,29 @@ export class SqlGenerator {
       onUpdate = ` ON UPDATE ${foreignKey.onUpdate}`;
     }
 
-    const dropSQL =
-      this.dialect === 'sqlite'
-        ? `-- SQLite doesn't support DROP CONSTRAINT`
-        : `ALTER TABLE ${tableName} DROP CONSTRAINT ${fkName};`;
+    // For SQLite, use table recreation to drop foreign key
+    if (this.dialect === 'sqlite' && tableSchema) {
+      const schemaWithoutFk: TableSchema = {
+        ...tableSchema,
+        foreignKeys: (tableSchema.foreignKeys || []).filter(
+          (fk: ForeignKey) => fk.name !== foreignKey.name
+        ),
+      };
+      const dropStatements = this.generateSqliteTableRecreation(
+        change.table,
+        tableSchema,
+        schemaWithoutFk
+      );
+      const addStatements = this.generateSqliteTableRecreation(
+        change.table,
+        schemaWithoutFk,
+        tableSchema
+      );
+      return { up: dropStatements, down: addStatements };
+    }
 
-    const addSQL =
-      this.dialect === 'sqlite'
-        ? `-- SQLite doesn't support ADD CONSTRAINT, define foreign keys in CREATE TABLE`
-        : `ALTER TABLE ${tableName} ADD CONSTRAINT ${fkName} FOREIGN KEY (${column}) REFERENCES ${refTable}(${refColumn})${onDelete}${onUpdate};`;
+    const dropSQL = `ALTER TABLE ${tableName} DROP CONSTRAINT ${fkName};`;
+    const addSQL = `ALTER TABLE ${tableName} ADD CONSTRAINT ${fkName} FOREIGN KEY (${column}) REFERENCES ${refTable}(${refColumn})${onDelete}${onUpdate};`;
 
     return { up: [dropSQL], down: [addSQL] };
   }

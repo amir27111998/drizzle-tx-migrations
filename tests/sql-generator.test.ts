@@ -353,7 +353,46 @@ describe('SqlGenerator', () => {
       expect(upStatements[0]).toContain('"email" TEXT NOT NULL');
     });
 
-    test('should generate comments for unsupported operations', () => {
+    test('should generate table recreation for drop column with tableSchema', () => {
+      const changes: SchemaChange[] = [
+        {
+          type: 'alter_table',
+          table: 'users',
+          details: {
+            changes: [
+              {
+                type: 'drop_column',
+                column: 'old_field',
+                details: {
+                  column: { name: 'old_field', type: 'text', notNull: false, primaryKey: false },
+                  tableSchema: {
+                    name: 'users',
+                    columns: [
+                      { name: 'id', type: 'integer', notNull: true, primaryKey: true },
+                      { name: 'name', type: 'text', notNull: true, primaryKey: false },
+                      { name: 'old_field', type: 'text', notNull: false, primaryKey: false },
+                    ],
+                    indexes: [],
+                    foreignKeys: [],
+                    primaryKey: ['id'],
+                  },
+                },
+              },
+            ],
+          },
+        },
+      ];
+
+      const { upStatements } = generator.generate(changes);
+
+      // SQLite now uses table recreation for drop column
+      expect(upStatements[0]).toContain('PRAGMA foreign_keys=OFF');
+      expect(upStatements).toContainEqual(expect.stringContaining('RENAME TO'));
+      expect(upStatements).toContainEqual(expect.stringContaining('CREATE TABLE'));
+      expect(upStatements).toContainEqual(expect.stringContaining('DROP TABLE'));
+    });
+
+    test('should fallback to simple ALTER TABLE for drop column without tableSchema', () => {
       const changes: SchemaChange[] = [
         {
           type: 'alter_table',
@@ -374,8 +413,8 @@ describe('SqlGenerator', () => {
 
       const { upStatements } = generator.generate(changes);
 
-      expect(upStatements[0]).toContain('--');
-      expect(upStatements[0]).toContain('SQLite');
+      // Without tableSchema, it falls back to simple ALTER TABLE
+      expect(upStatements[0]).toContain('DROP COLUMN');
     });
 
     test('should use SQLite type mappings', () => {

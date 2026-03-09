@@ -323,7 +323,8 @@ export class SchemaIntrospector {
       const columns: TableColumn[] = columnsResult.map((col: any) => ({
         name: col.name,
         type: this.normalizeSQLiteType(col.type),
-        notNull: col.notnull === 1,
+        // PRIMARY KEY columns are implicitly NOT NULL in SQLite
+        notNull: col.notnull === 1 || col.pk === 1,
         defaultValue: col.dflt_value,
         primaryKey: col.pk === 1,
         autoIncrement: col.pk === 1 && col.type.toUpperCase() === 'INTEGER',
