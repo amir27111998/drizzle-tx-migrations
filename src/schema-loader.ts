@@ -391,16 +391,17 @@ export class SchemaLoader {
         return null;
       }
 
-      // Generate foreign key name
-      const fkName = `fk_${columns[0]}_${refTableName}`;
+      // Use custom name if provided (in reference), otherwise generate one
+      const fkName = reference.name || `fk_${columns[0]}_${refTableName}`;
 
       return {
         name: fkName,
         column: columns[0],
         referencedTable: refTableName,
         referencedColumn: refColumns[0],
-        onDelete: reference.onDelete,
-        onUpdate: reference.onUpdate,
+        // onDelete/onUpdate are on the FK object, not the reference
+        onDelete: drizzleFk.onDelete || reference.onDelete,
+        onUpdate: drizzleFk.onUpdate || reference.onUpdate,
       };
     } catch (error) {
       console.warn(`Failed to parse foreign key:`, error);
@@ -410,6 +411,7 @@ export class SchemaLoader {
 
   /**
    * Normalize SQL type from Drizzle's getSQLType() to our internal format
+   * Preserves length/precision information for types like varchar(36)
    */
   private normalizeSQLType(sqlType: string): string {
     // Normalize common type aliases
@@ -440,8 +442,22 @@ export class SchemaLoader {
       blob: 'blob',
     };
 
-    // Extract base type without length/precision specifiers
-    const normalized = sqlType.toLowerCase().replace(/\([^)]*\)/g, '');
-    return typeMap[normalized] || normalized;
+    // Extract base type and length/precision
+    const match = sqlType.toLowerCase().match(/^([a-z]+)(\([^)]*\))?$/);
+    if (!match) {
+      return sqlType.toLowerCase();
+    }
+
+    const baseType = match[1];
+    const lengthPrecision = match[2] || '';
+
+    const normalizedBase = typeMap[baseType] || baseType;
+
+    // Preserve length/precision for types that support it
+    if (lengthPrecision && ['varchar', 'char', 'decimal', 'numeric'].includes(normalizedBase)) {
+      return normalizedBase + lengthPrecision;
+    }
+
+    return normalizedBase;
   }
 }

@@ -15,20 +15,33 @@ export class SqlGenerator {
     const downStatements: string[] = [];
 
     // Process changes in a specific order for dependencies
-    // 1. Drop foreign keys
+    // UP order:
+    // 1. Drop foreign keys (must happen before dropping referenced tables)
     // 2. Drop indexes
     // 3. Alter tables
     // 4. Drop tables
     // 5. Create tables
     // 6. Create indexes
-    // 7. Create foreign keys
+    // 7. Create foreign keys (must happen after referenced tables exist)
+    //
+    // DOWN order (reverse of up):
+    // We process changes in reverse order and prepend their down statements
+    // This ensures proper dependency order for rollback
 
     const orderedChanges = this.orderChanges(changes);
 
+    // First pass: collect all up statements in order
     for (const change of orderedChanges) {
-      const { up, down } = this.generateChangeSQL(change);
+      const { up } = this.generateChangeSQL(change);
       if (up) upStatements.push(...up);
-      if (down) downStatements.unshift(...down); // Reverse order for down migration
+    }
+
+    // Second pass: collect down statements in REVERSE order of changes
+    // Each change's down statements stay in their internal order
+    for (let i = orderedChanges.length - 1; i >= 0; i--) {
+      const change = orderedChanges[i];
+      const { down } = this.generateChangeSQL(change);
+      if (down) downStatements.push(...down);
     }
 
     return { upStatements, downStatements };
@@ -86,7 +99,11 @@ export class SqlGenerator {
     }
 
     const createSQL = `CREATE TABLE ${tableName} (\n  ${columnDefs.join(',\n  ')}\n);`;
-    const dropSQL = `DROP TABLE IF EXISTS ${tableName};`;
+    // Use CASCADE for PostgreSQL to handle foreign key dependencies
+    const dropSQL =
+      this.dialect === 'postgresql'
+        ? `DROP TABLE IF EXISTS ${tableName} CASCADE;`
+        : `DROP TABLE IF EXISTS ${tableName};`;
 
     return {
       up: [createSQL],
@@ -100,7 +117,10 @@ export class SqlGenerator {
 
     const dropSQL = `DROP TABLE IF EXISTS ${tableName};`;
 
-    // For down migration, recreate the table
+    // For down migration, recreate the table with its columns, indexes, and foreign keys
+    const downStatements: string[] = [];
+
+    // 1. Create the table with columns
     const columnDefs = tableSchema.columns.map((col: TableColumn) =>
       this.generateColumnDefinition(col)
     );
@@ -111,10 +131,41 @@ export class SqlGenerator {
     }
 
     const createSQL = `CREATE TABLE ${tableName} (\n  ${columnDefs.join(',\n  ')}\n);`;
+    downStatements.push(createSQL);
+
+    // 2. Recreate indexes
+    if (tableSchema.indexes && tableSchema.indexes.length > 0) {
+      for (const index of tableSchema.indexes) {
+        const indexName = this.quote(index.name);
+        const columns = index.columns.map((c: string) => this.quote(c)).join(', ');
+        const unique = index.unique ? 'UNIQUE ' : '';
+        downStatements.push(`CREATE ${unique}INDEX ${indexName} ON ${tableName} (${columns});`);
+      }
+    }
+
+    // 3. Recreate foreign keys
+    if (tableSchema.foreignKeys && tableSchema.foreignKeys.length > 0) {
+      for (const fk of tableSchema.foreignKeys) {
+        const fkName = this.quote(fk.name);
+        const column = this.quote(fk.column);
+        const refTable = this.quote(fk.referencedTable);
+        const refColumn = this.quote(fk.referencedColumn);
+        let onDelete = '';
+        let onUpdate = '';
+        if (fk.onDelete) onDelete = ` ON DELETE ${fk.onDelete}`;
+        if (fk.onUpdate) onUpdate = ` ON UPDATE ${fk.onUpdate}`;
+
+        if (this.dialect !== 'sqlite') {
+          downStatements.push(
+            `ALTER TABLE ${tableName} ADD CONSTRAINT ${fkName} FOREIGN KEY (${column}) REFERENCES ${refTable}(${refColumn})${onDelete}${onUpdate};`
+          );
+        }
+      }
+    }
 
     return {
       up: [dropSQL],
-      down: [createSQL],
+      down: downStatements,
     };
   }
 
@@ -185,17 +236,38 @@ export class SqlGenerator {
   private generateModifyColumn(tableName: string, column: TableColumn): string {
     const table = this.quote(tableName);
     const colName = this.quote(column.name);
-    const colDef = this.generateColumnDefinition(column);
 
     if (this.dialect === 'postgresql') {
       // PostgreSQL requires separate ALTER commands for different attributes
       return `ALTER TABLE ${table} ALTER COLUMN ${colName} TYPE ${this.getColumnType(column)};`;
     } else if (this.dialect === 'mysql') {
+      // For MODIFY COLUMN, we need to exclude PRIMARY KEY to avoid "Multiple primary key" error
+      const colDef = this.generateColumnDefinitionForModify(column);
       return `ALTER TABLE ${table} MODIFY COLUMN ${colDef};`;
     } else {
       // SQLite doesn't support ALTER COLUMN
       return `-- SQLite doesn't support MODIFY COLUMN natively, manual migration required`;
     }
+  }
+
+  /**
+   * Generate column definition for MODIFY COLUMN (excludes PRIMARY KEY)
+   * This is needed because MySQL doesn't allow redefining PRIMARY KEY in MODIFY COLUMN
+   */
+  private generateColumnDefinitionForModify(column: TableColumn): string {
+    const name = this.quote(column.name);
+    const type = this.getColumnType(column);
+    const notNull = column.notNull ? ' NOT NULL' : '';
+    const defaultValue = this.formatDefaultValue(column.defaultValue);
+
+    let autoIncrement = '';
+    if (column.autoIncrement) {
+      if (this.dialect === 'mysql') {
+        autoIncrement = ' AUTO_INCREMENT';
+      }
+    }
+
+    return `${name} ${type}${notNull}${autoIncrement}${defaultValue}`;
   }
 
   private generateCreateIndex(change: SchemaChange): { up: string[]; down: string[] } {
@@ -374,12 +446,18 @@ export class SqlGenerator {
     // Map normalized types to dialect-specific types
     const type = column.type.toLowerCase();
 
+    // Check if type already includes length/precision (e.g., varchar(36))
+    const match = type.match(/^([a-z]+)(\([^)]*\))?$/);
+    const baseType = match ? match[1] : type;
+    const lengthPrecision = match ? match[2] || '' : '';
+
     if (this.dialect === 'postgresql') {
       const pgTypes: Record<string, string> = {
         integer: 'INTEGER',
         bigint: 'BIGINT',
         smallint: 'SMALLINT',
-        varchar: 'VARCHAR(255)',
+        varchar: 'VARCHAR',
+        char: 'CHAR',
         text: 'TEXT',
         boolean: 'BOOLEAN',
         timestamp: 'TIMESTAMP',
@@ -392,14 +470,21 @@ export class SqlGenerator {
         real: 'REAL',
         double: 'DOUBLE PRECISION',
         decimal: 'DECIMAL',
+        numeric: 'NUMERIC',
       };
-      return pgTypes[type] || type.toUpperCase();
+      const mappedType = pgTypes[baseType] || baseType.toUpperCase();
+      // Add default length for varchar/char if not specified
+      if ((baseType === 'varchar' || baseType === 'char') && !lengthPrecision) {
+        return `${mappedType}(255)`;
+      }
+      return mappedType + lengthPrecision.toUpperCase();
     } else if (this.dialect === 'mysql') {
       const mysqlTypes: Record<string, string> = {
         integer: 'INT',
         bigint: 'BIGINT',
         smallint: 'SMALLINT',
-        varchar: 'VARCHAR(255)',
+        varchar: 'VARCHAR',
+        char: 'CHAR',
         text: 'TEXT',
         boolean: 'BOOLEAN',
         timestamp: 'TIMESTAMP',
@@ -409,8 +494,14 @@ export class SqlGenerator {
         real: 'FLOAT',
         double: 'DOUBLE',
         decimal: 'DECIMAL',
+        numeric: 'NUMERIC',
       };
-      return mysqlTypes[type] || type.toUpperCase();
+      const mappedType = mysqlTypes[baseType] || baseType.toUpperCase();
+      // Add default length for varchar/char if not specified
+      if ((baseType === 'varchar' || baseType === 'char') && !lengthPrecision) {
+        return `${mappedType}(255)`;
+      }
+      return mappedType + lengthPrecision.toUpperCase();
     } else {
       // SQLite
       const sqliteTypes: Record<string, string> = {
@@ -418,6 +509,7 @@ export class SqlGenerator {
         bigint: 'INTEGER',
         smallint: 'INTEGER',
         varchar: 'TEXT',
+        char: 'TEXT',
         text: 'TEXT',
         boolean: 'INTEGER',
         timestamp: 'TEXT',
@@ -428,7 +520,7 @@ export class SqlGenerator {
         decimal: 'REAL',
         blob: 'BLOB',
       };
-      return sqliteTypes[type] || 'TEXT';
+      return sqliteTypes[baseType] || 'TEXT';
     }
   }
 
