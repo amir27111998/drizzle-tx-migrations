@@ -349,7 +349,9 @@ export class SqlGenerator {
 
     if (commonColumns.length > 0) {
       const columnList = commonColumns.map((c) => this.quote(c)).join(', ');
-      statements.push(`INSERT INTO ${table} (${columnList}) SELECT ${columnList} FROM ${tempTable};`);
+      statements.push(
+        `INSERT INTO ${table} (${columnList}) SELECT ${columnList} FROM ${tempTable};`
+      );
     }
 
     // Step 5: Drop old table

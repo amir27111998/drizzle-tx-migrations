@@ -136,7 +136,11 @@ export class SchemaDiffer {
           type: 'modify_column',
           column: colName,
           // Include tableSchema for SQLite table recreation support
-          details: { currentColumn: currentCol, desiredColumn: desiredCol, tableSchema: currentTable },
+          details: {
+            currentColumn: currentCol,
+            desiredColumn: desiredCol,
+            tableSchema: currentTable,
+          },
         });
       }
     }

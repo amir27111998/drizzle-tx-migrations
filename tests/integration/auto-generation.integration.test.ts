@@ -251,8 +251,8 @@ describe('Auto-Generation Integration Tests', () => {
     const beforeData = sqlite.prepare('SELECT * FROM products ORDER BY id').all();
     expect(beforeData).toHaveLength(3);
     expect(beforeData[0]).toMatchObject({ id: 1, name: 'Product A', price: 10.99 });
-    expect(beforeData[1]).toMatchObject({ id: 2, name: 'Product B', price: 20.50 });
-    expect(beforeData[2]).toMatchObject({ id: 3, name: 'Product C', price: 30.00 });
+    expect(beforeData[1]).toMatchObject({ id: 2, name: 'Product B', price: 20.5 });
+    expect(beforeData[2]).toMatchObject({ id: 3, name: 'Product C', price: 30.0 });
 
     // Generate SQL to drop the 'description' column using table recreation
     const sqlGenerator = new SqlGenerator('sqlite');
@@ -270,7 +270,13 @@ describe('Auto-Generation Integration Tests', () => {
                 tableSchema: {
                   name: 'products',
                   columns: [
-                    { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                    {
+                      name: 'id',
+                      type: 'integer',
+                      notNull: true,
+                      primaryKey: true,
+                      autoIncrement: true,
+                    },
                     { name: 'name', type: 'text', notNull: true, primaryKey: false },
                     { name: 'description', type: 'text', notNull: false, primaryKey: false },
                     { name: 'price', type: 'real', notNull: true, primaryKey: false },
@@ -305,8 +311,8 @@ describe('Auto-Generation Integration Tests', () => {
 
     // All original data should be preserved
     expect(afterData[0]).toMatchObject({ id: 1, name: 'Product A', price: 10.99 });
-    expect(afterData[1]).toMatchObject({ id: 2, name: 'Product B', price: 20.50 });
-    expect(afterData[2]).toMatchObject({ id: 3, name: 'Product C', price: 30.00 });
+    expect(afterData[1]).toMatchObject({ id: 2, name: 'Product B', price: 20.5 });
+    expect(afterData[2]).toMatchObject({ id: 3, name: 'Product C', price: 30.0 });
 
     // The 'description' column should no longer exist
     expect(afterData[0]).not.toHaveProperty('description');
@@ -359,7 +365,13 @@ describe('Auto-Generation Integration Tests', () => {
                 tableSchema: {
                   name: 'users_modify',
                   columns: [
-                    { name: 'id', type: 'integer', notNull: true, primaryKey: true, autoIncrement: true },
+                    {
+                      name: 'id',
+                      type: 'integer',
+                      notNull: true,
+                      primaryKey: true,
+                      autoIncrement: true,
+                    },
                     { name: 'email', type: 'text', notNull: false, primaryKey: false },
                     { name: 'age', type: 'integer', notNull: false, primaryKey: false },
                   ],
@@ -492,12 +504,16 @@ describe('Auto-Generation Integration Tests', () => {
     expect(itemsAfter[3]).toMatchObject({ id: 4, name: 'Phone', category_id: 1 });
 
     // Verify foreign key relationships still work
-    const joinQuery = sqlite.prepare(`
+    const joinQuery = sqlite
+      .prepare(
+        `
       SELECT i.name as item_name, c.name as category_name
       FROM items i
       JOIN categories c ON i.category_id = c.id
       ORDER BY i.id
-    `).all() as any[];
+    `
+      )
+      .all() as any[];
 
     expect(joinQuery).toHaveLength(4);
     expect(joinQuery[0]).toMatchObject({ item_name: 'Laptop', category_name: 'Electronics' });
