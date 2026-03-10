@@ -1,3 +1,22 @@
+/**
+ * SchemaDiffer - Compares two database schemas and finds differences
+ *
+ * Compares currentSchema (from database) with desiredSchema (from Drizzle files)
+ * and produces a list of changes needed to make them match.
+ *
+ * Change types:
+ * - create_table, drop_table
+ * - alter_table (add/drop/modify columns)
+ * - create_index, drop_index
+ * - add_foreign_key, drop_foreign_key
+ *
+ * @example
+ * const differ = new SchemaDiffer(currentSchema, desiredSchema);
+ * const changes = differ.diff();
+ * // changes is SchemaChange[] in dependency order
+ *
+ * @see src/ARCHITECTURE.md for full documentation
+ */
 import type {
   DatabaseSchema,
   TableSchema,

@@ -1,3 +1,21 @@
+/**
+ * SchemaLoader - Parses Drizzle ORM schema files
+ *
+ * Loads TypeScript/JavaScript files containing Drizzle table definitions
+ * and extracts the schema structure (tables, columns, indexes, FKs).
+ *
+ * Supports:
+ * - Single files, directories, and glob patterns
+ * - PostgreSQL, MySQL, and SQLite Drizzle schemas
+ * - Automatic detection of Drizzle table exports
+ *
+ * @example
+ * const loader = new SchemaLoader(['./src/db/schema.ts'], 'postgresql');
+ * const schema = await loader.loadSchema();
+ * // schema.tables is a Map<tableName, TableSchema>
+ *
+ * @see src/ARCHITECTURE.md for full documentation
+ */
 import * as path from 'path';
 import * as fs from 'fs';
 import { is } from 'drizzle-orm';

@@ -1,3 +1,20 @@
+/**
+ * SchemaIntrospector - Reads current database schema
+ *
+ * Queries the database to get the current state of:
+ * - Tables and their columns (types, nullability, defaults, PKs)
+ * - Indexes (columns, uniqueness)
+ * - Foreign key constraints
+ *
+ * Supports: PostgreSQL, MySQL, SQLite
+ *
+ * @example
+ * const introspector = new SchemaIntrospector(db, 'postgresql');
+ * const schema = await introspector.introspect();
+ * // schema.tables is a Map<tableName, TableSchema>
+ *
+ * @see src/ARCHITECTURE.md for full documentation
+ */
 import { sql } from 'drizzle-orm';
 import type { DbDialect } from './types';
 import type {

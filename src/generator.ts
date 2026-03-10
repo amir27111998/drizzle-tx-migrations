@@ -1,3 +1,18 @@
+/**
+ * MigrationGenerator - Creates migration files
+ *
+ * Main responsibilities:
+ * - Generate blank migration templates
+ * - Auto-generate migrations by comparing DB schema to Drizzle schema
+ * - Import existing drizzle-kit migrations
+ *
+ * @example
+ * const generator = new MigrationGenerator('./migrations', db, 'postgresql', ['./schema.ts']);
+ * await generator.generateMigration('add_users_table'); // Auto-generates from diff
+ * await generator.importFromDrizzleKit('./drizzle'); // Import drizzle-kit migrations
+ *
+ * @see src/ARCHITECTURE.md for full documentation
+ */
 import * as fs from 'fs';
 import * as path from 'path';
 import { glob } from 'glob';

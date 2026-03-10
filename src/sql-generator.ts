@@ -1,3 +1,19 @@
+/**
+ * SqlGenerator - Generates SQL statements from schema changes
+ *
+ * Takes SchemaChange[] from SchemaDiffer and produces:
+ * - upStatements: SQL to apply changes
+ * - downStatements: SQL to revert changes
+ *
+ * Handles dialect-specific SQL syntax for PostgreSQL, MySQL, SQLite.
+ * For SQLite, uses table recreation pattern when ALTER TABLE is insufficient.
+ *
+ * @example
+ * const generator = new SqlGenerator('postgresql');
+ * const { upStatements, downStatements } = generator.generate(changes);
+ *
+ * @see src/ARCHITECTURE.md for full documentation
+ */
 import type { DbDialect } from './types';
 import type {
   SchemaChange,
