@@ -1,3 +1,19 @@
+/**
+ * Migrator - Executes and reverts database migrations
+ *
+ * Main responsibilities:
+ * - Load migration files from disk
+ * - Track executed migrations in database
+ * - Run pending migrations with transaction support
+ * - Revert migrations when needed
+ *
+ * @example
+ * const migrator = new Migrator({ db, dialect: 'postgresql', config });
+ * await migrator.runMigrations(); // Run all pending
+ * await migrator.revertMigration('1234_create_users'); // Revert specific
+ *
+ * @see src/ARCHITECTURE.md for full documentation
+ */
 import { sql } from 'drizzle-orm';
 import * as fs from 'fs';
 import * as path from 'path';

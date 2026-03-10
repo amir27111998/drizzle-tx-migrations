@@ -1,41 +1,39 @@
+/**
+ * SchemaIntrospector - Reads current database schema
+ *
+ * Queries the database to get the current state of:
+ * - Tables and their columns (types, nullability, defaults, PKs)
+ * - Indexes (columns, uniqueness)
+ * - Foreign key constraints
+ *
+ * Supports: PostgreSQL, MySQL, SQLite
+ *
+ * @example
+ * const introspector = new SchemaIntrospector(db, 'postgresql');
+ * const schema = await introspector.introspect();
+ * // schema.tables is a Map<tableName, TableSchema>
+ *
+ * @see src/ARCHITECTURE.md for full documentation
+ */
 import { sql } from 'drizzle-orm';
 import type { DbDialect } from './types';
+import type {
+  TableColumn,
+  TableIndex,
+  ForeignKey,
+  TableSchema,
+  DatabaseSchema,
+} from './types/schema-types';
+import {
+  normalizePostgreSQLType,
+  normalizeMySQLType,
+  normalizeSQLiteType,
+} from './utils/type-normalizer';
+import { normalizeRows } from './utils/result-normalizer';
+import { MIGRATION_TABLE_NAME } from './constants';
 
-export interface TableColumn {
-  name: string;
-  type: string;
-  notNull: boolean;
-  defaultValue?: string;
-  primaryKey: boolean;
-  autoIncrement?: boolean;
-}
-
-export interface TableIndex {
-  name: string;
-  columns: string[];
-  unique: boolean;
-}
-
-export interface ForeignKey {
-  name: string;
-  column: string;
-  referencedTable: string;
-  referencedColumn: string;
-  onDelete?: string;
-  onUpdate?: string;
-}
-
-export interface TableSchema {
-  name: string;
-  columns: TableColumn[];
-  indexes: TableIndex[];
-  foreignKeys: ForeignKey[];
-  primaryKey: string[];
-}
-
-export interface DatabaseSchema {
-  tables: Map<string, TableSchema>;
-}
+// Re-export types for backward compatibility
+export type { TableColumn, TableIndex, ForeignKey, TableSchema, DatabaseSchema };
 
 export class SchemaIntrospector {
   constructor(
@@ -99,7 +97,7 @@ export class SchemaIntrospector {
 
       const columns: TableColumn[] = columnsResult.rows.map((col: any) => ({
         name: col.column_name,
-        type: this.normalizePostgreSQLType(col.data_type),
+        type: normalizePostgreSQLType(col.data_type),
         notNull: col.is_nullable === 'NO',
         defaultValue: col.column_default,
         primaryKey: col.is_primary_key,
@@ -195,7 +193,7 @@ export class SchemaIntrospector {
     const tablesResult = await this.db.execute(sql.raw(tablesQuery));
 
     // MySQL2 returns [rows[], metadata], so we need the first element
-    const tableRows = tablesResult.rows || tablesResult[0] || tablesResult;
+    const tableRows = normalizeRows(tablesResult);
 
     for (const tableRow of tableRows) {
       const tableName = tableRow.table_name || tableRow.TABLE_NAME;
@@ -217,10 +215,10 @@ export class SchemaIntrospector {
       const columnsResult = await this.db.execute(sql.raw(columnsQuery));
 
       // MySQL2 returns [rows[], metadata], so we need the first element
-      const columnRows = columnsResult.rows || columnsResult[0] || columnsResult;
+      const columnRows = normalizeRows(columnsResult);
       const columns: TableColumn[] = columnRows.map((col: any) => ({
         name: col.column_name || col.COLUMN_NAME,
-        type: this.normalizeMySQLType(col.data_type || col.DATA_TYPE),
+        type: normalizeMySQLType(col.data_type || col.DATA_TYPE),
         notNull: (col.is_nullable || col.IS_NULLABLE) === 'NO',
         defaultValue: col.column_default || col.COLUMN_DEFAULT,
         primaryKey: (col.column_key || col.COLUMN_KEY) === 'PRI',
@@ -242,7 +240,7 @@ export class SchemaIntrospector {
       const indexesResult = await this.db.execute(sql.raw(indexesQuery));
 
       // MySQL2 returns [rows[], metadata], so we need the first element
-      const indexRows = indexesResult.rows || indexesResult[0] || indexesResult;
+      const indexRows = normalizeRows(indexesResult);
       const indexMap = new Map<string, { columns: string[]; unique: boolean }>();
 
       for (const idx of indexRows) {
@@ -278,7 +276,7 @@ export class SchemaIntrospector {
       const fkResult = await this.db.execute(sql.raw(fkQuery));
 
       // MySQL2 returns [rows[], metadata], so we need the first element
-      const fkRows = fkResult.rows || fkResult[0] || fkResult;
+      const fkRows = normalizeRows(fkResult);
       const foreignKeys: ForeignKey[] = fkRows.map((fk: any) => ({
         name: fk.constraint_name || fk.CONSTRAINT_NAME,
         column: fk.column_name || fk.COLUMN_NAME,
@@ -322,7 +320,7 @@ export class SchemaIntrospector {
 
       const columns: TableColumn[] = columnsResult.map((col: any) => ({
         name: col.name,
-        type: this.normalizeSQLiteType(col.type),
+        type: normalizeSQLiteType(col.type),
         // PRIMARY KEY columns are implicitly NOT NULL in SQLite
         notNull: col.notnull === 1 || col.pk === 1,
         defaultValue: col.dflt_value,
@@ -370,147 +368,5 @@ export class SchemaIntrospector {
     }
 
     return { tables };
-  }
-
-  private normalizePostgreSQLType(type: string): string {
-    const typeMap: Record<string, string> = {
-      // String types
-      'character varying': 'varchar',
-      character: 'char',
-      text: 'text',
-      // Numeric types
-      bigint: 'bigint',
-      integer: 'integer',
-      smallint: 'smallint',
-      real: 'real',
-      'double precision': 'double',
-      numeric: 'numeric',
-      decimal: 'decimal',
-      // Boolean
-      boolean: 'boolean',
-      // Date/Time types
-      'timestamp without time zone': 'timestamp',
-      'timestamp with time zone': 'timestamptz',
-      date: 'date',
-      time: 'time',
-      'time without time zone': 'time',
-      'time with time zone': 'timetz',
-      interval: 'interval',
-      // JSON types
-      json: 'json',
-      jsonb: 'jsonb',
-      // UUID
-      uuid: 'uuid',
-      // Binary types
-      bytea: 'bytea',
-      // Network types
-      inet: 'inet',
-      cidr: 'cidr',
-      macaddr: 'macaddr',
-      macaddr8: 'macaddr8',
-      // Geometric types
-      point: 'point',
-      line: 'line',
-      lseg: 'lseg',
-      box: 'box',
-      path: 'path',
-      polygon: 'polygon',
-      circle: 'circle',
-      // Array types (will be handled separately)
-      // Range types
-      int4range: 'int4range',
-      int8range: 'int8range',
-      numrange: 'numrange',
-      tsrange: 'tsrange',
-      tstzrange: 'tstzrange',
-      daterange: 'daterange',
-      // Other types
-      money: 'money',
-      bit: 'bit',
-      'bit varying': 'varbit',
-      xml: 'xml',
-      tsvector: 'tsvector',
-      tsquery: 'tsquery',
-    };
-    return typeMap[type] || type;
-  }
-
-  private normalizeMySQLType(type: string): string {
-    const typeMap: Record<string, string> = {
-      // String types
-      varchar: 'varchar',
-      char: 'char',
-      text: 'text',
-      tinytext: 'tinytext',
-      mediumtext: 'mediumtext',
-      longtext: 'longtext',
-      // Numeric types
-      int: 'int',
-      integer: 'int',
-      bigint: 'bigint',
-      tinyint: 'tinyint',
-      smallint: 'smallint',
-      mediumint: 'mediumint',
-      float: 'float',
-      double: 'double',
-      decimal: 'decimal',
-      numeric: 'numeric',
-      // Boolean
-      boolean: 'boolean',
-      bool: 'boolean',
-      // Date/Time types
-      datetime: 'datetime',
-      timestamp: 'timestamp',
-      date: 'date',
-      time: 'time',
-      year: 'year',
-      // JSON
-      json: 'json',
-      // Binary types
-      binary: 'binary',
-      varbinary: 'varbinary',
-      blob: 'blob',
-      tinyblob: 'tinyblob',
-      mediumblob: 'mediumblob',
-      longblob: 'longblob',
-      // Enum and Set
-      enum: 'enum',
-      set: 'set',
-      // Bit
-      bit: 'bit',
-    };
-    return typeMap[type] || type;
-  }
-
-  private normalizeSQLiteType(type: string): string {
-    const typeUpper = type.toUpperCase();
-    // SQLite type affinity rules
-    // INTEGER affinity
-    if (typeUpper.includes('INT')) return 'integer';
-    // TEXT affinity
-    if (
-      typeUpper.includes('CHAR') ||
-      typeUpper.includes('TEXT') ||
-      typeUpper.includes('CLOB') ||
-      typeUpper.includes('VARCHAR') ||
-      typeUpper.includes('VARYING')
-    )
-      return 'text';
-    // REAL affinity
-    if (
-      typeUpper.includes('REAL') ||
-      typeUpper.includes('FLOA') ||
-      typeUpper.includes('DOUB') ||
-      typeUpper.includes('NUMERIC') ||
-      typeUpper.includes('DECIMAL')
-    )
-      return 'real';
-    // BLOB affinity (no type or BLOB)
-    if (typeUpper.includes('BLOB') || typeUpper === '' || typeUpper.includes('BINARY'))
-      return 'blob';
-    // NUMERIC affinity for everything else that might be boolean, date, etc.
-    if (typeUpper.includes('BOOL')) return 'integer';
-    if (typeUpper.includes('DATE') || typeUpper.includes('TIME')) return 'text';
-    return 'text';
   }
 }

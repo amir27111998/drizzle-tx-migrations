@@ -1,6 +1,29 @@
+/**
+ * SqlGenerator - Generates SQL statements from schema changes
+ *
+ * Takes SchemaChange[] from SchemaDiffer and produces:
+ * - upStatements: SQL to apply changes
+ * - downStatements: SQL to revert changes
+ *
+ * Handles dialect-specific SQL syntax for PostgreSQL, MySQL, SQLite.
+ * For SQLite, uses table recreation pattern when ALTER TABLE is insufficient.
+ *
+ * @example
+ * const generator = new SqlGenerator('postgresql');
+ * const { upStatements, downStatements } = generator.generate(changes);
+ *
+ * @see src/ARCHITECTURE.md for full documentation
+ */
 import type { DbDialect } from './types';
-import type { SchemaChange, TableChange } from './schema-differ';
-import type { TableColumn, TableIndex, ForeignKey, TableSchema } from './schema-introspector';
+import type {
+  SchemaChange,
+  TableChange,
+  TableColumn,
+  TableIndex,
+  ForeignKey,
+  TableSchema,
+} from './types/schema-types';
+import { quote } from './utils/dialect-utils';
 
 export interface GeneratedSql {
   upStatements: string[];
@@ -86,7 +109,7 @@ export class SqlGenerator {
 
   private generateCreateTable(change: SchemaChange): { up: string[]; down: string[] } {
     const { tableSchema } = change.details;
-    const tableName = this.quote(change.table);
+    const tableName = quote(change.table, this.dialect);
 
     const columnDefs = tableSchema.columns.map((col: TableColumn) =>
       this.generateColumnDefinition(col)
@@ -94,7 +117,7 @@ export class SqlGenerator {
 
     // Add primary key constraint if multiple columns
     if (tableSchema.primaryKey.length > 1) {
-      const pkCols = tableSchema.primaryKey.map((c: string) => this.quote(c)).join(', ');
+      const pkCols = tableSchema.primaryKey.map((c: string) => quote(c, this.dialect)).join(', ');
       columnDefs.push(`PRIMARY KEY (${pkCols})`);
     }
 
@@ -113,7 +136,7 @@ export class SqlGenerator {
 
   private generateDropTable(change: SchemaChange): { up: string[]; down: string[] } {
     const { tableSchema } = change.details;
-    const tableName = this.quote(change.table);
+    const tableName = quote(change.table, this.dialect);
 
     const dropSQL = `DROP TABLE IF EXISTS ${tableName};`;
 
@@ -126,7 +149,7 @@ export class SqlGenerator {
     );
 
     if (tableSchema.primaryKey.length > 1) {
-      const pkCols = tableSchema.primaryKey.map((c: string) => this.quote(c)).join(', ');
+      const pkCols = tableSchema.primaryKey.map((c: string) => quote(c, this.dialect)).join(', ');
       columnDefs.push(`PRIMARY KEY (${pkCols})`);
     }
 
@@ -136,8 +159,8 @@ export class SqlGenerator {
     // 2. Recreate indexes
     if (tableSchema.indexes && tableSchema.indexes.length > 0) {
       for (const index of tableSchema.indexes) {
-        const indexName = this.quote(index.name);
-        const columns = index.columns.map((c: string) => this.quote(c)).join(', ');
+        const indexName = quote(index.name, this.dialect);
+        const columns = index.columns.map((c: string) => quote(c, this.dialect)).join(', ');
         const unique = index.unique ? 'UNIQUE ' : '';
         downStatements.push(`CREATE ${unique}INDEX ${indexName} ON ${tableName} (${columns});`);
       }
@@ -146,10 +169,10 @@ export class SqlGenerator {
     // 3. Recreate foreign keys
     if (tableSchema.foreignKeys && tableSchema.foreignKeys.length > 0) {
       for (const fk of tableSchema.foreignKeys) {
-        const fkName = this.quote(fk.name);
-        const column = this.quote(fk.column);
-        const refTable = this.quote(fk.referencedTable);
-        const refColumn = this.quote(fk.referencedColumn);
+        const fkName = quote(fk.name, this.dialect);
+        const column = quote(fk.column, this.dialect);
+        const refTable = quote(fk.referencedTable, this.dialect);
+        const refColumn = quote(fk.referencedColumn, this.dialect);
         let onDelete = '';
         let onUpdate = '';
         if (fk.onDelete) onDelete = ` ON DELETE ${fk.onDelete}`;
@@ -187,7 +210,7 @@ export class SqlGenerator {
     tableName: string,
     change: TableChange
   ): { up: string[]; down: string[] } {
-    const table = this.quote(tableName);
+    const table = quote(tableName, this.dialect);
 
     switch (change.type) {
       case 'add_column': {
@@ -215,7 +238,7 @@ export class SqlGenerator {
           }
         }
 
-        const dropSQL = `ALTER TABLE ${table} DROP COLUMN ${this.quote(change.column)};`;
+        const dropSQL = `ALTER TABLE ${table} DROP COLUMN ${quote(change.column, this.dialect)};`;
         return { up: [addSQL], down: [dropSQL] };
       }
 
@@ -251,7 +274,7 @@ export class SqlGenerator {
           }
         }
 
-        const dropSQL = `ALTER TABLE ${table} DROP COLUMN ${this.quote(change.column)};`;
+        const dropSQL = `ALTER TABLE ${table} DROP COLUMN ${quote(change.column, this.dialect)};`;
         const addSQL = `ALTER TABLE ${table} ADD COLUMN ${colDef};`;
         return { up: [dropSQL], down: [addSQL] };
       }
@@ -305,8 +328,8 @@ export class SqlGenerator {
     newSchema: TableSchema
   ): string[] {
     const statements: string[] = [];
-    const table = this.quote(tableName);
-    const tempTable = this.quote(`_${tableName}_old`);
+    const table = quote(tableName, this.dialect);
+    const tempTable = quote(`_${tableName}_old`, this.dialect);
 
     // Step 1: Disable foreign keys
     statements.push('PRAGMA foreign_keys=OFF;');
@@ -321,15 +344,15 @@ export class SqlGenerator {
 
     // Add primary key constraint if multiple columns
     if (newSchema.primaryKey.length > 1) {
-      const pkCols = newSchema.primaryKey.map((c: string) => this.quote(c)).join(', ');
+      const pkCols = newSchema.primaryKey.map((c: string) => quote(c, this.dialect)).join(', ');
       columnDefs.push(`PRIMARY KEY (${pkCols})`);
     }
 
     // Add foreign key constraints inline for SQLite
     for (const fk of newSchema.foreignKeys || []) {
-      const column = this.quote(fk.column);
-      const refTable = this.quote(fk.referencedTable);
-      const refColumn = this.quote(fk.referencedColumn);
+      const column = quote(fk.column, this.dialect);
+      const refTable = quote(fk.referencedTable, this.dialect);
+      const refColumn = quote(fk.referencedColumn, this.dialect);
       let onDelete = '';
       let onUpdate = '';
       if (fk.onDelete) onDelete = ` ON DELETE ${fk.onDelete}`;
@@ -348,7 +371,7 @@ export class SqlGenerator {
     const commonColumns = newColumnNames.filter((name) => oldColumnNames.includes(name));
 
     if (commonColumns.length > 0) {
-      const columnList = commonColumns.map((c) => this.quote(c)).join(', ');
+      const columnList = commonColumns.map((c) => quote(c, this.dialect)).join(', ');
       statements.push(
         `INSERT INTO ${table} (${columnList}) SELECT ${columnList} FROM ${tempTable};`
       );
@@ -359,8 +382,8 @@ export class SqlGenerator {
 
     // Step 6: Recreate indexes
     for (const index of newSchema.indexes || []) {
-      const indexName = this.quote(index.name);
-      const columns = index.columns.map((c: string) => this.quote(c)).join(', ');
+      const indexName = quote(index.name, this.dialect);
+      const columns = index.columns.map((c: string) => quote(c, this.dialect)).join(', ');
       const unique = index.unique ? 'UNIQUE ' : '';
       statements.push(`CREATE ${unique}INDEX ${indexName} ON ${table} (${columns});`);
     }
@@ -373,8 +396,8 @@ export class SqlGenerator {
   }
 
   private generateModifyColumn(tableName: string, column: TableColumn): string {
-    const table = this.quote(tableName);
-    const colName = this.quote(column.name);
+    const table = quote(tableName, this.dialect);
+    const colName = quote(column.name, this.dialect);
 
     if (this.dialect === 'postgresql') {
       // PostgreSQL requires separate ALTER commands for different attributes
@@ -394,7 +417,7 @@ export class SqlGenerator {
    * This is needed because MySQL doesn't allow redefining PRIMARY KEY in MODIFY COLUMN
    */
   private generateColumnDefinitionForModify(column: TableColumn): string {
-    const name = this.quote(column.name);
+    const name = quote(column.name, this.dialect);
     const type = this.getColumnType(column);
     const notNull = column.notNull ? ' NOT NULL' : '';
     const defaultValue = this.formatDefaultValue(column.defaultValue);
@@ -411,9 +434,9 @@ export class SqlGenerator {
 
   private generateCreateIndex(change: SchemaChange): { up: string[]; down: string[] } {
     const { index } = change.details;
-    const tableName = this.quote(change.table);
-    const indexName = this.quote(index.name);
-    const columns = index.columns.map((c: string) => this.quote(c)).join(', ');
+    const tableName = quote(change.table, this.dialect);
+    const indexName = quote(index.name, this.dialect);
+    const columns = index.columns.map((c: string) => quote(c, this.dialect)).join(', ');
     const unique = index.unique ? 'UNIQUE ' : '';
 
     const createSQL = `CREATE ${unique}INDEX ${indexName} ON ${tableName} (${columns});`;
@@ -424,9 +447,9 @@ export class SqlGenerator {
 
   private generateDropIndex(change: SchemaChange): { up: string[]; down: string[] } {
     const { index } = change.details;
-    const tableName = this.quote(change.table);
-    const indexName = this.quote(index.name);
-    const columns = index.columns.map((c: string) => this.quote(c)).join(', ');
+    const tableName = quote(change.table, this.dialect);
+    const indexName = quote(index.name, this.dialect);
+    const columns = index.columns.map((c: string) => quote(c, this.dialect)).join(', ');
     const unique = index.unique ? 'UNIQUE ' : '';
 
     const dropSQL = `DROP INDEX ${this.dialect === 'mysql' ? `${indexName} ON ${tableName}` : indexName};`;
@@ -437,11 +460,11 @@ export class SqlGenerator {
 
   private generateAddForeignKey(change: SchemaChange): { up: string[]; down: string[] } {
     const { foreignKey, tableSchema } = change.details;
-    const tableName = this.quote(change.table);
-    const fkName = this.quote(foreignKey.name);
-    const column = this.quote(foreignKey.column);
-    const refTable = this.quote(foreignKey.referencedTable);
-    const refColumn = this.quote(foreignKey.referencedColumn);
+    const tableName = quote(change.table, this.dialect);
+    const fkName = quote(foreignKey.name, this.dialect);
+    const column = quote(foreignKey.column, this.dialect);
+    const refTable = quote(foreignKey.referencedTable, this.dialect);
+    const refColumn = quote(foreignKey.referencedColumn, this.dialect);
 
     let onDelete = '';
     let onUpdate = '';
@@ -480,11 +503,11 @@ export class SqlGenerator {
 
   private generateDropForeignKey(change: SchemaChange): { up: string[]; down: string[] } {
     const { foreignKey, tableSchema } = change.details;
-    const tableName = this.quote(change.table);
-    const fkName = this.quote(foreignKey.name);
-    const column = this.quote(foreignKey.column);
-    const refTable = this.quote(foreignKey.referencedTable);
-    const refColumn = this.quote(foreignKey.referencedColumn);
+    const tableName = quote(change.table, this.dialect);
+    const fkName = quote(foreignKey.name, this.dialect);
+    const column = quote(foreignKey.column, this.dialect);
+    const refTable = quote(foreignKey.referencedTable, this.dialect);
+    const refColumn = quote(foreignKey.referencedColumn, this.dialect);
 
     let onDelete = '';
     let onUpdate = '';
@@ -524,7 +547,7 @@ export class SqlGenerator {
   }
 
   private generateColumnDefinition(column: TableColumn): string {
-    const name = this.quote(column.name);
+    const name = quote(column.name, this.dialect);
     const type = this.getColumnType(column);
     const notNull = column.notNull ? ' NOT NULL' : '';
     const primaryKey = column.primaryKey && !column.autoIncrement ? ' PRIMARY KEY' : '';
@@ -784,16 +807,6 @@ export class SqlGenerator {
         longblob: 'BLOB',
       };
       return sqliteTypes[baseType] || 'TEXT';
-    }
-  }
-
-  private quote(identifier: string): string {
-    if (this.dialect === 'postgresql') {
-      return `"${identifier}"`;
-    } else if (this.dialect === 'mysql') {
-      return `\`${identifier}\``;
-    } else {
-      return `"${identifier}"`;
     }
   }
 }

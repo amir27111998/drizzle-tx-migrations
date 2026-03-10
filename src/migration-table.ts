@@ -1,11 +1,14 @@
 import { sql } from 'drizzle-orm';
 import type { DbDialect, MigrationMeta } from './types';
+import { quote } from './utils/dialect-utils';
+import { normalizeRows } from './utils/result-normalizer';
+import { MIGRATION_TABLE_NAME } from './constants';
 
 export class MigrationTable {
   constructor(
     private db: any,
     private dialect: DbDialect,
-    private tableName: string = '__drizzle_migrations'
+    private tableName: string = MIGRATION_TABLE_NAME
   ) {}
 
   async ensureTable(): Promise<void> {
@@ -48,30 +51,16 @@ export class MigrationTable {
   async getExecutedMigrations(): Promise<MigrationMeta[]> {
     const query = this.getSelectQuery();
     const result = await this.db.execute(sql.raw(query));
-    return this.normalizeRows(result);
+    return this.mapToMigrationMeta(result);
   }
 
   private getSelectQuery(): string {
-    const quote = this.dialect === 'mysql' ? '`' : '"';
-    return `SELECT * FROM ${quote}${this.tableName}${quote} ORDER BY timestamp ASC`;
+    const quotedTable = quote(this.tableName, this.dialect);
+    return `SELECT * FROM ${quotedTable} ORDER BY timestamp ASC`;
   }
 
-  private normalizeRows(result: any): MigrationMeta[] {
-    let rows: any[] = [];
-
-    // MySQL (mysql2) returns [rows, metadata]
-    if (Array.isArray(result) && Array.isArray(result[0])) {
-      rows = result[0];
-    }
-    // PostgreSQL (pg) returns { rows: [...] }
-    else if (result.rows) {
-      rows = result.rows;
-    }
-    // SQLite might return rows directly
-    else if (Array.isArray(result)) {
-      rows = result;
-    }
-
+  private mapToMigrationMeta(result: any): MigrationMeta[] {
+    const rows = normalizeRows(result);
     return rows.map((row: any) => ({
       id: row.id,
       name: row.name,
@@ -88,21 +77,13 @@ export class MigrationTable {
   }
 
   private getInsertQuery(): string {
-    const quote = this.dialect === 'mysql' ? '`' : '"';
-
-    switch (this.dialect) {
-      case 'postgresql':
-        return `INSERT INTO ${quote}${this.tableName}${quote} (name, timestamp) VALUES ('$name', $timestamp)`;
-      case 'mysql':
-        return `INSERT INTO ${quote}${this.tableName}${quote} (name, timestamp) VALUES ('$name', $timestamp)`;
-      case 'sqlite':
-        return `INSERT INTO ${quote}${this.tableName}${quote} (name, timestamp) VALUES ('$name', $timestamp)`;
-    }
+    const quotedTable = quote(this.tableName, this.dialect);
+    return `INSERT INTO ${quotedTable} (name, timestamp) VALUES ('$name', $timestamp)`;
   }
 
   async removeMigration(name: string): Promise<void> {
-    const quote = this.dialect === 'mysql' ? '`' : '"';
-    const query = `DELETE FROM ${quote}${this.tableName}${quote} WHERE name = '$name'`;
+    const quotedTable = quote(this.tableName, this.dialect);
+    const query = `DELETE FROM ${quotedTable} WHERE name = '$name'`;
     await this.db.execute(sql.raw(query.replace('$name', name)));
   }
 }
